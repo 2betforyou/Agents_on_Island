@@ -58,8 +58,10 @@ final class ReadmeImagesTests: XCTestCase {
         model.workspacePath = folders[0]
         model.notchHeight = IslandMetrics.compactHeight
         model.compactWidth = 285 // 185 pt camera housing + 100
-        model.hasPhysicalNotch = true
-        model.physicalNotchWidth = 185
+        // Drawn as a display without a camera notch: the app's own center island (Dynamic Island
+        // proportions) stands in the middle, so screenshots never show hardware.
+        model.hasPhysicalNotch = false
+        model.physicalNotchWidth = 0
         model.panelWidth = 940; model.panelHeight = 600
         // Sample token history: the real ~/.claude and ~/.codex logs are never read for screenshots.
         model.tokenHistory = AgentTokenHistoryService(scan: { kind in Self.sampleTokens(kind) })
@@ -117,7 +119,7 @@ final class ReadmeImagesTests: XCTestCase {
                             NSColor(srgbRed: 0.27, green: 0.20, blue: 0.40, alpha: 1),
                             NSColor(srgbRed: 0.10, green: 0.24, blue: 0.30, alpha: 1)])!.draw(in: rect, angle: -35)
     }
-    /// A dark menu bar with neutral placeholder menus and the NotchAgent status item.
+    /// A dark menu bar with neutral placeholder menus and the app's status item.
     private func menuBar(width: CGFloat, top: CGFloat) {
         NSColor(white: 0.08, alpha: 0.55).setFill()
         NSRect(x: 0, y: top - 32, width: width, height: 32).fill()
@@ -129,19 +131,6 @@ final class ReadmeImagesTests: XCTestCase {
         tinted.draw(in: NSRect(x: width - 118, y: top - 25, width: 18, height: 18))
     }
 
-    /// The camera housing, drawn over everything like the real hardware.
-    private func notch(width canvasWidth: CGFloat, top: CGFloat) {
-        let rect = NSRect(x: (canvasWidth - 185) / 2, y: top - 32, width: 185, height: 32)
-        let path = NSBezierPath()
-        path.move(to: NSPoint(x: rect.minX, y: rect.maxY))
-        path.line(to: NSPoint(x: rect.minX, y: rect.minY + 9))
-        path.curve(to: NSPoint(x: rect.minX + 9, y: rect.minY), controlPoint1: NSPoint(x: rect.minX, y: rect.minY + 4), controlPoint2: NSPoint(x: rect.minX + 4, y: rect.minY))
-        path.line(to: NSPoint(x: rect.maxX - 9, y: rect.minY))
-        path.curve(to: NSPoint(x: rect.maxX, y: rect.minY + 9), controlPoint1: NSPoint(x: rect.maxX - 4, y: rect.minY), controlPoint2: NSPoint(x: rect.maxX, y: rect.minY + 4))
-        path.line(to: NSPoint(x: rect.maxX, y: rect.maxY))
-        path.close()
-        NSColor.black.setFill(); path.fill()
-    }
     /// The island view keeps a shadow margin above its surface; the app centers the 28 pt
     /// islands in the 32 pt menu bar, so lift the render by the margin minus that 2 pt gap.
     private static let islandLift = IslandMetrics.shadowInset - (32 - IslandMetrics.compactHeight) / 2
@@ -199,7 +188,6 @@ final class ReadmeImagesTests: XCTestCase {
             wallpaper(NSRect(origin: .zero, size: size))
             menuBar(width: size.width, top: size.height)
             drawIsland(island, width: size.width, top: size.height)
-            notch(width: size.width, top: size.height)
         }
         try save(image, "hero.png")
     }
@@ -251,7 +239,6 @@ final class ReadmeImagesTests: XCTestCase {
                 NSColor(white: 0.08, alpha: 0.55).setFill()
                 NSRect(x: 0, y: top - 32, width: width, height: 32).fill()
                 row.2.draw(in: NSRect(x: (width - row.2.size.width) / 2, y: top - row.2.size.height, width: row.2.size.width, height: row.2.size.height))
-                notch(width: width, top: top)
                 (row.0 as NSString).draw(at: NSPoint(x: 24, y: top - 24), withAttributes: [.font: NSFont.systemFont(ofSize: 14, weight: .semibold), .foregroundColor: NSColor.white])
                 (row.1 as NSString).draw(at: NSPoint(x: 24, y: top - 50), withAttributes: [.font: NSFont.systemFont(ofSize: 11), .foregroundColor: NSColor(white: 1, alpha: 0.7)])
                 top -= heights[index]
@@ -286,7 +273,6 @@ final class ReadmeImagesTests: XCTestCase {
             wallpaper(NSRect(origin: .zero, size: size))
             menuBar(width: size.width, top: size.height)
             drawIsland(image, width: size.width, top: size.height)
-            notch(width: size.width, top: size.height)
         }
         try save(framed, "workspace.png")
     }
@@ -328,7 +314,6 @@ final class ReadmeImagesTests: XCTestCase {
             wallpaper(NSRect(origin: .zero, size: size))
             menuBar(width: size.width, top: size.height)
             drawIsland(image, width: size.width, top: size.height)
-            notch(width: size.width, top: size.height)
         }
         try save(framed, "home.png")
     }

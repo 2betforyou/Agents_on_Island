@@ -299,7 +299,9 @@ final class TerminalSession: NSObject, Identifiable, LocalProcessTerminalViewDel
     private var reportsStart: Bool { kind == .claude }
     func receive(_ event: AgentEvent?, conversation: String?, now: Date) {
         hasAgentEvents = true
-        if let conversation { conversationID = conversation }
+        // Claude names a conversation at SessionStart, but writes it only once a prompt is sent;
+        // resuming an id from a session nobody talked in fails. Take it from real turns only.
+        if let conversation, kind != .claude || event == .started || event == .finished { conversationID = conversation }
         switch event {
         case .started: promptSubmittedAt = now
         case .finished:

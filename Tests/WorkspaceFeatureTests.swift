@@ -23,6 +23,7 @@ struct WorkspaceFeatureTests {
             model.sessions = [original]
             model.setSessionName(original, name: "  로그인 작업\n  ")
             #expect(original.displayTitle == "로그인 작업")
+            defaults.set(false, forKey: "startRestoredSessions") // keep the shell from retitling the tab
             let restored = AppModel(defaults: defaults)
             restored.restoreSavedSessions()
             let tab = try #require(restored.sessions.first)

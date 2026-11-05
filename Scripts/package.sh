@@ -17,5 +17,6 @@ package_dir="$(mktemp -d "${TMPDIR:-/tmp}/aoi-package.XXXXXX")"
 trap 'rm -rf "$package_dir"' EXIT
 ditto --norsrc --noextattr "$app" "$package_dir/Agents on Island.app"
 ditto -c -k --norsrc --noextattr --keepParent "$package_dir/Agents on Island.app" "$archive"
-shasum -a 256 "$archive" > "$archive.sha256"
+# Record the file name only, so `shasum -c` works wherever the download lands.
+(cd "$(dirname "$archive")" && shasum -a 256 "$(basename "$archive")" > "$(basename "$archive").sha256")
 printf '\nPackaged %s (local ad-hoc signature, not notarized).\n' "$archive"

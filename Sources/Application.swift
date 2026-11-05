@@ -235,7 +235,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let hovered = model.agentIslandFrames(in: rect).first {
                 IslandShape(radius: min(18, $0.frame.height / 2)).path(in: $0.frame).contains(NSEvent.mouseLocation)
             }
-            let overCamera = !model.hasPhysicalNotch && Capsule().path(in: model.mockCameraFrame(in: rect)).contains(NSEvent.mouseLocation)
+            let center = model.centerIslandFrame(in: rect)
+            let overCamera = (model.hasPhysicalNotch ? Path(center) : Capsule().path(in: center)).contains(NSEvent.mouseLocation)
             inside = hovered != nil || overCamera
             if inside, model.previewAgent != hovered?.kind { model.previewAgent = hovered?.kind }
         } else {

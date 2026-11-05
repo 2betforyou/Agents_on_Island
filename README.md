@@ -36,22 +36,22 @@ There's no automatic updater yet. Watch the repository's releases to hear about 
 
 ## The islands
 
-Each agent gets its own small island in the menu bar: **Claude and Gemini on the left, Codex and Terminal on the right**. On a MacBook with a camera notch, they sit on either side of it. On other displays, a small black capsule stands in for the camera in the center.
+Each agent gets its own small island in the menu bar: **Claude and Gemini on the left, Codex and Terminal on the right**. In the middle is the center island: on a MacBook with a camera notch, **the notch itself** (nothing extra is drawn); on other displays, a small black capsule.
 
 | What you do | What happens |
 |---|---|
 | Glance | Each island shows its agent's state: working, a notice, or remaining quota |
 | Hover over an agent's island | It expands in place into that agent's sessions, quota, token history, and recent activity. Neighboring islands slide aside to make room |
 | Click an agent's island | Opens the workspace on that agent's session: one that needs you first, then one that's working, then the latest |
-| Hover over the center capsule (displays without a notch) | Opens the full preview: projects, quick request, usage, and recent activity |
-| Click the center capsule, or press `⌃⌥Space` | Opens the workspace |
+| Hover over the notch (or the center capsule), or the Terminal island | Opens the full preview: projects, quick request, usage, and recent activity |
+| Click the notch (or the center capsule), or press `⌃⌥Space` | Opens the workspace |
 | Hold **Option (⌥)** | Islands gather into the center and hide, so you can reach menu bar items underneath. Release to bring them back |
 
 Islands appear only when they have something to show. With nothing running and usage display off, a single Terminal island remains.
 
 ### What an island shows
 
-![Islands beside the camera: idle quota, working, elapsed time, working count, and a completion notice](docs/images/en/notch-states.png)
+![Agent islands around the center island: idle quota, working, elapsed time, working count, and a completion notice](docs/images/en/notch-states.png)
 
 - **Working**: the agent's icon and `•••`, then elapsed time after a minute. Optionally, the number of sessions working.
 - **Notice**: when a session finishes or needs input, its island grows briefly to show the event and project. It disappears after about six seconds; find it again in **Recent Activity**.

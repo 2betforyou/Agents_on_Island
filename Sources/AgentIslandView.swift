@@ -8,12 +8,17 @@ struct AgentIslandsView: View {
         let bounds = CGRect(x: 0, y: 0, width: model.closedWidth, height: model.closedHeight)
         let frames = model.presentedAgentIslandFrames(in: bounds)
         ZStack(alignment: .topLeading) {
-            if !model.hasPhysicalNotch {
-                // The mock center opens the workspace, like the shortcut (agent islands open their own sessions).
+            // The center island opens the workspace, like the shortcut (agent islands open their own
+            // sessions). On a notched display the camera notch itself is the center island.
+            let center = model.centerIslandFrame(in: bounds)
+            if center.width > 0 {
                 Button { model.openPriorityOrTerminal() } label: {
-                    Capsule().fill(.black)
-                        .frame(width: IslandMetrics.mockCameraWidth, height: model.notchHeight)
-                        .contentShape(Capsule())
+                    Group {
+                        // The real notch needs nothing drawn: only an invisible hit area over it.
+                        if model.hasPhysicalNotch { Color.clear } else { Capsule().fill(.black) }
+                    }
+                    .frame(width: center.width, height: model.notchHeight)
+                    .contentShape(Rectangle())
                 }
                     .buttonStyle(.plain)
                     .position(x: bounds.midX, y: model.notchHeight / 2)

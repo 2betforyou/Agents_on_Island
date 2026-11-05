@@ -69,6 +69,25 @@ struct IslandGeometryTests {
         let back = try #require(model.presentedAgentIslandFrames(in: rect).first { $0.kind == .codex }).frame
         #expect(back == resting, "collapsing returns it to its place")
     }
+    @Test("On a notched display the notch itself is the center island")
+    @MainActor func notchIsTheCenter() throws {
+        let suite = "NotchAgent.NotchCenter." + UUID().uuidString
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let model = AppModel(defaults: defaults)
+        model.usage.enabled = false; model.claudeUsage.enabled = false
+        model.hasPhysicalNotch = true; model.physicalNotchWidth = 185
+        let rect = CGRect(x: 0, y: 0, width: model.closedWidth, height: model.closedHeight)
+        let center = model.centerIslandFrame(in: rect)
+        #expect(center.width == 185 && center.midX == rect.midX, "covers the camera notch")
+        #expect(model.closedIslandKinds == [.shell], "no extra island is added for notched displays")
+        for island in model.agentIslandFrames(in: rect) { #expect(!island.frame.intersects(center)) }
+        model.previewAgent = .claude // hovered earlier
+        model.openPriorityOrTerminal()
+        #expect(model.previewAgent == nil, "opening from the center grows from the center")
+        model.hasPhysicalNotch = false
+        #expect(model.centerIslandFrame(in: rect) == model.mockCameraFrame(in: rect), "elsewhere, the mock capsule")
+    }
     @Test("The expanded panel fits connected displays while its anchor stays in the menu bar")
     @MainActor func connectedDisplays() {
         for screen in NSScreen.screens {

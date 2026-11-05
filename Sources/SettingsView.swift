@@ -171,7 +171,9 @@ struct SettingsView: View {
             Form {
             Section(L("세션", "Sessions")) {
                 Toggle(L("다시 열 때 세션 복원", "Restore sessions on relaunch"), isOn: $model.restoreSessions)
-                Text(L("탭을 복원하고 열 때 시작합니다. Claude·Codex는 저장된 대화 ID가 있으면 같은 대화를 이어가고, 없으면 폴더의 마지막 대화로 이어질 수 있습니다. 미제출 입력과 실행 중인 프로세스는 복원하지 않습니다.", "Restores tabs and starts them when opened. Claude and Codex resume a saved conversation ID when available; otherwise they may continue the folder's latest conversation. Drafts and running processes aren't restored."))
+                Toggle(L("복원한 세션 바로 실행", "Start restored sessions right away"), isOn: $model.startRestoredSessions)
+                    .disabled(!model.restoreSessions)
+                Text(L("앱을 다시 열면 탭을 복원하고 바로 실행합니다(끄면 탭을 열 때 실행). Claude·Codex는 저장된 대화 ID가 있으면 같은 대화를 이어가고, 없으면 폴더의 마지막 대화로 이어질 수 있습니다. 미제출 입력, 터미널 스크롤 기록, 실행 중이던 작업은 복원하지 않습니다.", "On relaunch, tabs come back and start right away (off: each starts when opened). Claude and Codex resume a saved conversation ID when available; otherwise they may continue the folder's latest conversation. Drafts, scrollback, and in-progress work aren't restored."))
                     .font(.caption).foregroundStyle(.secondary)
             }
             Section {

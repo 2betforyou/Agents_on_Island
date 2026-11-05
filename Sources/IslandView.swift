@@ -76,7 +76,9 @@ struct IslandView: View {
     }
     private var surfaceSize: CGSize {
         if model.phase == .closed {
-            return CGSize(width: model.previewAgent.map { model.agentIslandSize($0).width } ?? IslandMetrics.mockCameraWidth, height: model.notchHeight)
+            // Collapsed, the surface waits where it will grow from: the hovered island, or the
+            // center island (the notch itself on a notched display).
+            return CGSize(width: model.previewAgent.map { model.agentIslandSize($0).width } ?? model.centerIslandWidth, height: model.notchHeight)
         }
         return CGSize(width: width, height: height)
     }
@@ -100,7 +102,7 @@ struct IslandView: View {
             } else {
                 VStack(spacing: 0) {
                     // Only the actual camera housing stays clear in the menu-bar header.
-                    if model.phase != .preview || model.previewAgent == nil {
+                    if model.phase != .preview || model.agentPreviewKind == nil {
                         topRow.modifier(FolderDropTarget(model: model)).padding(.bottom, 10)
                     }
                     if let error = model.lastError {
@@ -112,7 +114,8 @@ struct IslandView: View {
                     }
                     else { terminalPanel }
                 }
-                .padding(.horizontal, model.phase == .preview && model.previewAgent != nil ? 12 : 26)
+                .padding(.horizontal, model.phase == .preview && model.agentPreviewKind != nil ? 12 : 26)
+                // Any preview opened from a side island starts below the menu-bar band, clear of the camera.
                 .padding(.top, model.phase == .preview && model.previewAgent != nil ? model.notchHeight + 10 : 0)
                 .padding(.bottom, model.phase == .terminal ? 8 : 12)
                 // The preview is exactly as tall as its content (no dead space below the footer).
@@ -126,7 +129,7 @@ struct IslandView: View {
                 }
                 .onPreferenceChange(PreviewHeightKey.self) { height in
                     guard height > 0 else { return }
-                    if let agent = model.previewAgent {
+                    if let agent = model.agentPreviewKind {
                         if abs(height - (model.agentPreviewHeights[agent] ?? 0)) > 0.5 {
                             model.agentPreviewHeights[agent] = height
                         }
@@ -223,7 +226,7 @@ struct IslandView: View {
     }
     private var preview: some View {
         Group {
-            if let agent = model.previewAgent {
+            if let agent = model.agentPreviewKind {
                 AgentPreview(model: model, kind: agent)
             } else { dashboardPreview }
         }

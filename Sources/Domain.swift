@@ -263,6 +263,13 @@ enum SessionRestore {
     }
     /// Both CLIs only continue a folder's *latest* conversation, so only the first tab per
     /// agent and folder resumes; duplicates start fresh instead of opening the same chat twice.
+    /// Whether Claude Code kept a transcript for `id` (it doesn't for a session nobody talked in).
+    static func claudeConversationExists(_ id: String, root: URL? = nil) -> Bool {
+        guard UUID(uuidString: id) != nil else { return false } // also keeps the id out of path tricks
+        let projects = root ?? FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".claude/projects")
+        let folders = (try? FileManager.default.contentsOfDirectory(at: projects, includingPropertiesForKeys: nil)) ?? []
+        return folders.contains { FileManager.default.fileExists(atPath: $0.appendingPathComponent(id + ".jsonl").path) }
+    }
     static func plan(_ saved: [SavedSession]) -> [(session: SavedSession, resume: Bool)] {
         var seen = Set<String>()
         return saved.map { item in

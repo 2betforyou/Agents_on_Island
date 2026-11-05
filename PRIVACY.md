@@ -1,14 +1,14 @@
-# NotchAgent 개인정보 처리방침
+# Agents on Island 개인정보 처리방침
 
-- 시행일: 2026년 9월 26일
-- 적용 대상: NotchAgent 0.1.0 이상 (macOS 앱)
+- 시행일: 2026년 11월 5일 (Agents on Island 0.1.4, 이전 이름 NotchAgent)
+- 적용 대상: Agents on Island 0.1.0 이상 (macOS 앱)
 - 문의: june295921@gmail.com
 
 [English version below](#english)
 
 ## 요약
 
-NotchAgent는 개인정보를 수집하지 않으며, 어떤 정보도 개발자나 제3자의 서버로 보내지 않습니다. 계정, 분석, 광고, 텔레메트리, 자동 업데이트 서버가 없습니다. 아래에 적은 정보는 모두 사용자의 Mac 안에만 저장되고, 앱 안에서만 쓰입니다.
+Agents on Island는 개인정보를 수집하지 않으며, 어떤 정보도 개발자나 제3자의 서버로 보내지 않습니다. 계정, 분석, 광고, 텔레메트리, 자동 업데이트 서버가 없습니다. 아래에 적은 정보는 모두 사용자의 Mac 안에만 저장되고, 앱 안에서만 쓰입니다.
 
 ## 기기에 저장하는 정보
 
@@ -26,7 +26,9 @@ macOS 환경설정(`~/Library/Preferences/app.notchagent.desktop.plist`)에 다�
 
 Claude 사용량 표시를 켠 경우에만 `~/Library/Application Support/NotchAgent/claude-rate-limits.json`에 5시간·주간 한도 사용률과 초기화 시각을 저장합니다. 이 기능을 끄면 파일을 삭제합니다.
 
-NotchAgent는 터미널 입력·출력 본문, 명령 기록, 대화 본문, API 키, 로그인 토큰을 저장하지 않습니다. 탭 제목은 위 세션 복원 정보에 포함됩니다.
+Agents on Island는 터미널 입력·출력 본문, 명령 기록, 대화 본문, API 키, 로그인 토큰을 저장하지 않습니다. 탭 제목은 위 세션 복원 정보에 포함됩니다.
+
+에이전트 섬에 마우스를 올리면 오늘·30일 토큰 수를 보여 주기 위해 이 Mac에 있는 CLI 기록(Claude는 `~/.claude/projects`, Codex는 `~/.codex/sessions`)에서 토큰 사용량 숫자와 시각만 읽습니다. 결과는 앱 메모리에만 두고 저장하거나 전송하지 않으며, 대화 본문은 읽어 들인 즉시 버립니다. 세션을 복원할 때는 저장된 Claude 대화 ID의 기록 파일이 있는지만 확인합니다.
 
 최근 활동은 에이전트 종류, 작업 제목, 폴더 이름·전체 경로, 대화 ID(제공되는 경우), 이벤트, 시각, 읽음 상태를 최대 50개·24시간 동안 macOS 환경설정에 로컬로 보관합니다. 보관을 끄거나 목록을 비우면 저장본은 즉시 삭제됩니다. 프로젝트 경로와 대화 ID가 있는 Codex·Claude 활동은 종료·재실행 후에도 원래 대화를 이어 열 수 있습니다. 복원 정보가 없는 예전 기록은 다른 대화로 연결하지 않습니다. 알림 센터를 켜면 기본적으로 에이전트 종류와 이벤트만 macOS 로컬 알림으로 전달합니다. 작업 제목·폴더는 사용자가 알림 상세 내용 표시를 켠 경우에만 전달하며, 알림 기록은 macOS에서 관리합니다.
 
@@ -36,25 +38,25 @@ NotchAgent는 터미널 입력·출력 본문, 명령 기록, 대화 본문, API
 
 ## 사용자가 실행하는 프로그램
 
-임시 채팅은 macOS 임시 폴더의 `NotchAgent-Chats` 아래 개별 폴더에서 실행합니다. NotchAgent의 세션 복원·최근 활동 보관·프로젝트 활동 집계에는 포함하지 않으며, 앱이 열려 있는 동안 이벤트는 메모리에 표시될 수 있습니다. 임시 폴더의 생성 파일은 자동 삭제하지 않습니다. CLI 자체 대화 기록·네트워크 통신·파일 접근 권한은 기존과 같으므로 시크릿 모드나 보안 샌드박스가 아닙니다.
+임시 채팅은 macOS 임시 폴더의 `NotchAgent-Chats` 아래 개별 폴더에서 실행합니다. Agents on Island의 세션 복원·최근 활동 보관·프로젝트 활동 집계에는 포함하지 않으며, 앱이 열려 있는 동안 이벤트는 메모리에 표시될 수 있습니다. 임시 폴더의 생성 파일은 자동 삭제하지 않습니다. CLI 자체 대화 기록·네트워크 통신·파일 접근 권한은 기존과 같으므로 시크릿 모드나 보안 샌드박스가 아닙니다.
 
-터미널에서 실행한 셸과 CLI(Codex, Claude Code, Gemini CLI 등)는 사용자 계정 권한으로 동작합니다. 이들 프로그램의 네트워크 통신, 파일 접근, 기록 저장은 각 프로그램의 약관과 개인정보 처리방침을 따릅니다. NotchAgent는 이들의 승인·샌드박스 설정을 바꾸지 않습니다.
+터미널에서 실행한 셸과 CLI(Codex, Claude Code, Gemini CLI 등)는 사용자 계정 권한으로 동작합니다. 이들 프로그램의 네트워크 통신, 파일 접근, 기록 저장은 각 프로그램의 약관과 개인정보 처리방침을 따릅니다. Agents on Island는 이들의 승인·샌드박스 설정을 바꾸지 않습니다.
 
 ## 에이전트 상태 신호
 
-노치에 "작업 중", "완료", "확인 필요"를 정확히 표시하고 대화를 이어 열기 위해, NotchAgent에서 연 세션에 한해 각 CLI의 공식 확장 기능을 씁니다. 전역 설정 파일은 바꾸지 않습니다.
+노치에 "작업 중", "완료", "확인 필요"를 정확히 표시하고 대화를 이어 열기 위해, Agents on Island에서 연 세션에 한해 각 CLI의 공식 확장 기능을 씁니다. 전역 설정 파일은 바꾸지 않습니다.
 
 - **Claude Code**: 세션 시작, 요청 제출, 응답 종료, 알림 때 실행되는 훅을 추가합니다. 훅이 넘겨주는 정보 중 이벤트 종류, 알림 종류, 세션 ID만 사용합니다. 함께 전달되는 작업 폴더·대화 기록 경로·마지막 응답 같은 나머지 정보는 읽어 들인 즉시 버리며 저장하지 않습니다. 사용자가 설정한 기존 훅은 그대로 함께 실행됩니다.
-- **Codex**: 응답이 끝날 때 실행되는 `notify` 프로그램으로 NotchAgent를 지정합니다. 전달되는 정보 중 이벤트 종류와 스레드 ID만 사용하고, 요청·응답 내용은 저장하지 않습니다. 사용자가 이미 `notify` 프로그램을 설정해 두었다면 같은 정보를 그대로 그 프로그램에 전달합니다.
+- **Codex**: 응답이 끝날 때 실행되는 `notify` 프로그램으로 Agents on Island를 지정합니다. 전달되는 정보 중 이벤트 종류와 스레드 ID만 사용하고, 요청·응답 내용은 저장하지 않습니다. 사용자가 이미 `notify` 프로그램을 설정해 두었다면 같은 정보를 그대로 그 프로그램에 전달합니다.
 
 이 신호는 macOS의 로컬 알림으로 앱에 전달되며 Mac 밖으로 나가지 않습니다.
 
 ## 사용량 표시 (선택)
 
-- **Codex**: 켠 경우에만 5분마다 기기에 설치된 `codex app-server`를 읽기 전용 모드로 실행해 계정 플랜과 남은 한도를 읽습니다. 통신은 Codex CLI가 기존 로그인으로 OpenAI와 직접 수행합니다. NotchAgent는 결과를 화면에만 표시하고 저장하거나 다른 곳으로 보내지 않습니다.
-- **Claude Code**: 켠 경우에만 NotchAgent에서 여는 Claude Code 세션의 상태 표시줄 명령을 NotchAgent로 지정합니다. 전달되는 정보 중 한도 사용률과 초기화 시각만 위 파일에 저장하고, 나머지는 저장하지 않은 채 사용자가 원래 설정한 상태 표시줄 명령에 그대로 넘깁니다.
+- **Codex**: 켠 경우에만 5분마다 기기에 설치된 `codex app-server`를 읽기 전용 모드로 실행해 계정 플랜과 남은 한도를 읽습니다. 통신은 Codex CLI가 기존 로그인으로 OpenAI와 직접 수행합니다. Agents on Island는 결과를 화면에만 표시하고 저장하거나 다른 곳으로 보내지 않습니다.
+- **Claude Code**: 켠 경우에만 Agents on Island에서 여는 Claude Code 세션의 상태 표시줄 명령을 Agents on Island로 지정합니다. 전달되는 정보 중 한도 사용률과 초기화 시각만 위 파일에 저장하고, 나머지는 저장하지 않은 채 사용자가 원래 설정한 상태 표시줄 명령에 그대로 넘깁니다.
 
-NotchAgent는 키체인이나 로그인 정보를 읽지 않습니다. 두 기능 모두 설정에서 언제든 끌 수 있습니다.
+Agents on Island는 키체인이나 로그인 정보를 읽지 않습니다. 두 기능 모두 설정에서 언제든 끌 수 있습니다.
 
 ## GitHub 저장소 상태 (선택)
 
@@ -78,7 +80,7 @@ macOS 알림 권한은 사용자가 알림 센터 옵션을 켰을 때만 요청
 
 ## 아동의 개인정보
 
-NotchAgent는 개인정보를 수집하지 않으므로 아동의 개인정보도 수집하지 않습니다.
+Agents on Island는 개인정보를 수집하지 않으므로 아동의 개인정보도 수집하지 않습니다.
 
 ## 변경
 
@@ -91,15 +93,15 @@ NotchAgent는 개인정보를 수집하지 않으므로 아동의 개인정보�
 ---
 
 <a id="english"></a>
-# NotchAgent Privacy Policy
+# Agents on Island Privacy Policy
 
-- Effective: September 26, 2026
-- Applies to: NotchAgent 0.1.0 and later (macOS app)
+- Effective: November 5, 2026 (Agents on Island 0.1.4, formerly NotchAgent)
+- Applies to: Agents on Island 0.1.0 and later (macOS app)
 - Contact: june295921@gmail.com
 
 ## Summary
 
-NotchAgent does not collect personal information and sends nothing to the developer or to any third-party server. There are no accounts, analytics, ads, telemetry, or update servers. Everything listed below stays on your Mac and is used only by the app.
+Agents on Island does not collect personal information and sends nothing to the developer or to any third-party server. There are no accounts, analytics, ads, telemetry, or update servers. Everything listed below stays on your Mac and is used only by the app.
 
 ## Stored on your Mac
 
@@ -114,13 +116,15 @@ In macOS preferences (`~/Library/Preferences/app.notchagent.desktop.plist`):
 
 Only with Claude usage display on, the 5-hour and weekly usage percentages and reset times are stored in `~/Library/Application Support/NotchAgent/claude-rate-limits.json`. Turning the feature off deletes the file.
 
-NotchAgent never stores terminal input/output bodies, command history, conversation bodies, API keys, or sign-in tokens. Tab titles are included in the restoration metadata above.
+Agents on Island never stores terminal input/output bodies, command history, conversation bodies, API keys, or sign-in tokens. Tab titles are included in the restoration metadata above.
+
+When you hover an agent island, Agents on Island reads token counts and timestamps from the CLI logs on this Mac (`~/.claude/projects` for Claude, `~/.codex/sessions` for Codex) to show today's and 30-day totals. Results stay in app memory and are never stored or sent; conversation text is discarded as it is read. When restoring sessions, it only checks whether the transcript file for a saved Claude conversation ID exists.
 
 Recent activity stores up to 50 events for 24 hours in local macOS preferences: agent, task title, folder name and full path, conversation ID when available, event, time, and read state. Turning off retention or clearing the list immediately deletes the saved copy. Codex and Claude events with a project path and conversation ID can reopen that same conversation after relaunch. Older events without restore details never fall back to a different conversation. If Notification Center is enabled, only the agent and event are passed to macOS local notifications by default. Task title and folder are included only when you turn on notification details; macOS manages that notification history.
 
-When project activity recording is enabled, NotchAgent also stores the project folder path and daily count of completed agent replies locally for up to 366 days. Turning recording off immediately deletes these counts. Prompts, replies, and token counts are not included.
+When project activity recording is enabled, Agents on Island also stores the project folder path and daily count of completed agent replies locally for up to 366 days. Turning recording off immediately deletes these counts. Prompts, replies, and token counts are not included.
 
-Only when you request a historical import, NotchAgent reads local Claude Code and Codex conversations under `~/.claude/projects` and `~/.codex/sessions` for the selected project. It merges completion dates into estimated daily counts without storing conversation bodies or sending them to a server. Re-importing does not add the same records twice.
+Only when you request a historical import, Agents on Island reads local Claude Code and Codex conversations under `~/.claude/projects` and `~/.codex/sessions` for the selected project. It merges completion dates into estimated daily counts without storing conversation bodies or sending them to a server. Re-importing does not add the same records twice.
 
 Dropped images or screenshots without an existing file path are received under `NotchAgent-Drops` in the macOS temporary directory, and their paths are inserted into the terminal. Finder files use their original paths and are not copied. Temporary files remain available for the CLI and are subject to macOS temporary-file cleanup. The clipboard is not changed.
 
@@ -128,47 +132,47 @@ The preferences, support folder, and temporary files above can be removed to del
 
 ## Programs you run
 
-Shells and CLIs you run (Codex, Claude Code, Gemini CLI, and others) act with your user account's permissions. Their network access, file access, and history follow their own terms and privacy policies. NotchAgent does not change their approval or sandbox settings.
+Shells and CLIs you run (Codex, Claude Code, Gemini CLI, and others) act with your user account's permissions. Their network access, file access, and history follow their own terms and privacy policies. Agents on Island does not change their approval or sandbox settings.
 
 ## Agent status signals
 
-To show "working", "finished", and "needs you" precisely in the notch and to reopen conversations, NotchAgent uses each CLI's official extension points, only for sessions opened in NotchAgent. Global configuration files are not modified.
+To show "working", "finished", and "needs you" precisely in the notch and to reopen conversations, Agents on Island uses each CLI's official extension points, only for sessions opened in Agents on Island. Global configuration files are not modified.
 
-- **Claude Code**: hooks run on session start, prompt submit, turn end, and notifications. NotchAgent uses only the event name, notification type, and session id. Everything else in the hook input (working directory, transcript path, last message) is discarded immediately and never stored. Your own hooks keep running alongside.
-- **Codex**: NotchAgent is set as the `notify` program that runs when a turn ends. Only the event type and thread id are used; prompts and replies are not stored. If you already configured a `notify` program, it receives the same payload unchanged.
+- **Claude Code**: hooks run on session start, prompt submit, turn end, and notifications. Agents on Island uses only the event name, notification type, and session id. Everything else in the hook input (working directory, transcript path, last message) is discarded immediately and never stored. Your own hooks keep running alongside.
+- **Codex**: Agents on Island is set as the `notify` program that runs when a turn ends. Only the event type and thread id are used; prompts and replies are not stored. If you already configured a `notify` program, it receives the same payload unchanged.
 
 These signals reach the app as local macOS notifications and never leave your Mac.
 
 ## Usage display (optional)
 
-- **Codex**: when on, every 5 minutes NotchAgent runs your installed `codex app-server` in read-only mode to read your plan and remaining limits. The Codex CLI talks to OpenAI with your existing sign-in. Results are only displayed, never stored or sent elsewhere.
-- **Claude Code**: when on, NotchAgent becomes the status line command for Claude Code sessions opened in NotchAgent. Only the usage percentages and reset times are stored (file above); the rest is passed unchanged to your own status line command without being stored.
+- **Codex**: when on, every 5 minutes Agents on Island runs your installed `codex app-server` in read-only mode to read your plan and remaining limits. The Codex CLI talks to OpenAI with your existing sign-in. Results are only displayed, never stored or sent elsewhere.
+- **Claude Code**: when on, Agents on Island becomes the status line command for Claude Code sessions opened in Agents on Island. Only the usage percentages and reset times are stored (file above); the rest is passed unchanged to your own status line command without being stored.
 
-NotchAgent never reads the Keychain or sign-in data. Both features can be turned off in Settings at any time.
+Agents on Island never reads the Keychain or sign-in data. Both features can be turned off in Settings at any time.
 
 ## GitHub repository status (optional)
 
-Local disk usage includes `.git`, dependencies, and build output without following symlink targets. Size results are cached in memory for five minutes and not sent to a server. Temporary chats run in separate folders under the macOS temporary directory's `NotchAgent-Chats`. They are excluded from NotchAgent session restoration, saved recent activities, and project activity counts; events may be shown in memory while the app is open. Generated files are not automatically deleted. CLI history, network communication, and file permissions remain unchanged; this is not incognito mode or a security sandbox.
+Local disk usage includes `.git`, dependencies, and build output without following symlink targets. Size results are cached in memory for five minutes and not sent to a server. Temporary chats run in separate folders under the macOS temporary directory's `NotchAgent-Chats`. They are excluded from Agents on Island session restoration, saved recent activities, and project activity counts; events may be shown in memory while the app is open. Generated files are not automatically deleted. CLI history, network communication, and file permissions remain unchanged; this is not incognito mode or a security sandbox.
 
 Local branch, changed-file count, and origin are read for Home. Enabling PR and checks uses the installed GitHub CLI (gh) and its existing authentication to read metadata for the repository, branch, and commit from GitHub. The app does not initiate sign-in or separately store tokens. Results remain in memory; temporary command-output files are removed after each query. No repository changes, pushes, PR creation, or merging are performed. GitHub queries can be disabled in Settings.
 
 ## Git worktrees
 
-Only when you ask from a folder's menu, NotchAgent runs local `git worktree add` or `git worktree remove`. A worktree with uncommitted changes is never deleted.
+Only when you ask from a folder's menu, Agents on Island runs local `git worktree add` or `git worktree remove`. A worktree with uncommitted changes is never deleted.
 
 ## Diagnostic log
 
-For troubleshooting, NotchAgent writes error kinds and events to the macOS system log (for example, "shortcut registration failed"). It never logs terminal content, file paths, or account data, and the log never leaves your Mac unless you attach it to a bug report yourself.
+For troubleshooting, Agents on Island writes error kinds and events to the macOS system log (for example, "shortcut registration failed"). It never logs terminal content, file paths, or account data, and the log never leaves your Mac unless you attach it to a bug report yourself.
 
 ## Permissions
 
-NotchAgent does not request Accessibility, Screen Recording, Contacts, Location, Camera, or Microphone access. It blocks remote programs from overwriting the clipboard (OSC 52). Launch at login is registered only when you turn it on.
+Agents on Island does not request Accessibility, Screen Recording, Contacts, Location, Camera, or Microphone access. It blocks remote programs from overwriting the clipboard (OSC 52). Launch at login is registered only when you turn it on.
 
 macOS notification permission is requested only when you enable Notification Center. Notification Center and sound are off by default.
 
 ## Children's privacy
 
-NotchAgent collects no personal information, including from children.
+Agents on Island collects no personal information, including from children.
 
 ## Changes
 

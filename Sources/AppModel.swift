@@ -97,6 +97,9 @@ final class AppModel {
     var restoreSessions: Bool {
         didSet { defaults.set(restoreSessions, forKey: "restoreSessions"); saveSessions() }
     }
+    /// Restored tabs start at launch (agents resume their conversations), so islands and tabs
+    /// look the same after a relaunch. Off: each tab starts when it is first opened.
+    var startRestoredSessions: Bool { didSet { defaults.set(startRestoredSessions, forKey: "startRestoredSessions") } }
     /// Dynamic-Island style notice under the closed notch.
     var banner: NotchBanner?
     let usage: UsageService
@@ -147,6 +150,7 @@ final class AppModel {
         quickAgent = d.string(forKey: "quickAgent").flatMap(AgentKind.init(rawValue:)).flatMap { $0 == .shell ? nil : $0 } ?? .claude
         hotkey = d.data(forKey: "hotkey").flatMap { try? JSONDecoder().decode(Hotkey.self, from: $0) } ?? .default
         restoreSessions = d.object(forKey: "restoreSessions") as? Bool ?? true
+        startRestoredSessions = d.object(forKey: "startRestoredSessions") as? Bool ?? true
         let decode = { (key: String) in d.data(forKey: key).flatMap { try? JSONDecoder().decode([SavedWorkspace].self, from: $0) } }
         workspacePath = Workspaces.normalize(workspacePath)
         workspaces = Workspaces.migrate(saved: decode("workspaces"), recent: decode("recentWorkspaces") ?? [], active: workspacePath)
@@ -164,7 +168,7 @@ final class AppModel {
     var previewContentHeight: CGFloat = 0 { didSet { layoutChanged?() } }
     var agentPreviewHeights: [AgentKind: CGFloat] = [:]
     var previewHeight: CGFloat {
-        if let previewAgent { return agentPreviewHeights[previewAgent] ?? 250 }
+        if let agent = agentPreviewKind { return agentPreviewHeights[agent] ?? 250 }
         return previewContentHeight > 0 ? previewContentHeight : 440 + notchHeight
     }
     var hostHeight: CGFloat { max(panelHeight, previewHeight) }
@@ -186,6 +190,9 @@ final class AppModel {
         return true
     }
     func openPriorityOrTerminal() {
+        // Opened from the center (notch, capsule, shortcut, menu): grow from the center, not from
+        // whichever agent island was hovered last.
+        if phase == .closed { previewAgent = nil }
         if showsInlineSettings, let showSettings { showSettings(); return }
         if !openPrioritySession() { showTerminal?() }
     }
@@ -267,10 +274,13 @@ final class AppModel {
     }
     /// Keep the real camera clear; displays without a notch use only a small inter-island gap.
     var previewAgent: AgentKind?
+    /// The agent whose own preview is open. The Terminal island opens the full dashboard
+    /// instead (expanding from its own position), so it has no agent preview.
+    var agentPreviewKind: AgentKind? { previewAgent == .shell ? nil : previewAgent }
     var optionConcealed = false
     var tokenHistory = AgentTokenHistoryService()
     var agentPreviewWidth: CGFloat {
-        guard let kind = previewAgent else { return 570 }
+        guard let kind = agentPreviewKind else { return 570 }
         let titles = sessions.filter { !$0.ended && $0.kind == kind }.map(\.displayTitle)
         let font = NSFont.systemFont(ofSize: 13, weight: .medium)
         let titleWidth = ([kind.name] + titles).map { ($0 as NSString).size(withAttributes: [.font: font]).width }.max() ?? 0
@@ -293,6 +303,12 @@ final class AppModel {
         CGRect(x: rect.midX - IslandMetrics.mockCameraWidth / 2, y: rect.maxY - notchHeight,
                width: IslandMetrics.mockCameraWidth, height: notchHeight)
     }
+    /// The center island: the camera notch itself on a notched display, the mock capsule elsewhere.
+    /// Hovering it opens the full dashboard; clicking it opens the workspace.
+    func centerIslandFrame(in rect: CGRect) -> CGRect {
+        CGRect(x: rect.midX - centerIslandWidth / 2, y: rect.maxY - notchHeight, width: centerIslandWidth, height: notchHeight)
+    }
+    var centerIslandWidth: CGFloat { hasPhysicalNotch && physicalNotchWidth > 0 ? physicalNotchWidth : IslandMetrics.mockCameraWidth }
     var closedIslandKinds: [AgentKind] {
         let kinds = [AgentKind.claude, .codex, .gemini, .shell].filter { kind in
             (quietNotchShowsUsage && idleUsages.contains { $0.agent == kind })
@@ -390,7 +406,7 @@ final class AppModel {
     var islandWidth: CGFloat {
         switch phase {
         case .closed: closedWidth
-        case .preview: min(previewAgent == nil ? 570 : agentPreviewWidth, panelWidth)
+        case .preview: min(agentPreviewKind == nil ? 570 : agentPreviewWidth, panelWidth)
         case .terminal: panelWidth
         }
     }
@@ -795,18 +811,26 @@ final class AppModel {
         }
         if let data = try? JSONEncoder().encode(open) { defaults.set(data, forKey: "savedSessions") }
     }
-    /// Recreates last time's tabs. Each starts when opened; the first Claude/Codex tab of a
-    /// folder continues that folder's latest conversation.
+    /// Recreates last time's tabs, started right away unless `startRestoredSessions` is off;
+    /// the first Claude/Codex tab of a folder continues that folder's latest conversation.
     func restoreSavedSessions() {
         guard restoreSessions, let data = defaults.data(forKey: "savedSessions"),
               let saved = try? JSONDecoder().decode([SavedSession].self, from: data) else { return }
+        var restored: [TerminalSession] = []
         for plan in SessionRestore.plan(saved) where sessions.count < 8 {
             guard SavedWorkspace(path: plan.session.path).exists, let executable = executable(for: plan.session.kind) else { continue }
-            sessions.append(makeSession(kind: plan.session.kind, executable: executable,
-                                        directory: URL(fileURLWithPath: plan.session.path), resume: plan.resume,
-                                        conversation: plan.session.conversation, title: plan.session.title, customTitle: plan.session.customTitle))
+            // A Claude id without a transcript (closed before anyone spoke) can't be resumed:
+            // start that tab fresh rather than failing, or continuing some other conversation.
+            let missing = plan.session.kind == .claude && plan.session.conversation.map { !SessionRestore.claudeConversationExists($0) } == true
+            let session = makeSession(kind: plan.session.kind, executable: executable,
+                                      directory: URL(fileURLWithPath: plan.session.path), resume: plan.resume && !missing,
+                                      conversation: missing ? nil : plan.session.conversation, title: plan.session.title, customTitle: plan.session.customTitle)
+            sessions.append(session)
+            restored.append(session)
         }
         selectedID = visibleSessions.last?.id
+        // The terminal resizes the CLI when its tab first appears, like any background tab.
+        if startRestoredSessions { restored.forEach { $0.start() } }
     }
     /// A hook or notify event from a CLI running in one of our sessions.
     func handleAgentEvent(session id: String, event: String, conversation: String, now: Date = Date()) {
