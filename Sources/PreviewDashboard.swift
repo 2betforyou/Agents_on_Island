@@ -32,7 +32,7 @@ struct UsageReadingStatus: View {
                 VStack(alignment: .leading, spacing: 10) {
                     Text(agent.name + L(" 사용량", " usage")).font(.headline)
                     if let snapshot {
-                        Text(L("마지막 갱신: ", "Last updated: ") + snapshot.fetchedAt.formatted(date: .abbreviated, time: .standard))
+                        Text(L("마지막 갱신: ", "Last updated: ") + snapshot.fetchedAt.formatted(.dateTime.locale(AppLanguage.current.locale)))
                     }
                     if let error { Text(error).foregroundStyle(.orange).textSelection(.enabled) }
                     if stale { Text(L("오래된 값입니다. 현재 남은 한도와 다를 수 있습니다.", "This reading is outdated and may differ from your current limit.")).foregroundStyle(.orange) }
@@ -73,30 +73,33 @@ struct PreviewUsageSummary: View {
 
 struct RecentActivitiesView: View {
     let model: AppModel
+    var agent: AgentKind? = nil
+    var limit = Int.max
+    private var activities: [RecentActivity] { Array(model.recentActivities.filter { agent == nil || $0.kind == agent }.prefix(limit)) }
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
                 Text(L("최근 활동", "Recent Activity")).font(.caption.weight(.semibold))
-                if model.unreadActivityCount > 0 {
-                    Text("\(model.unreadActivityCount)").font(.caption2.monospacedDigit())
+                if activities.contains(where: { !$0.isRead }) {
+                    Text("\(activities.filter { !$0.isRead }.count)").font(.caption2.monospacedDigit())
                         .foregroundStyle(Palette.mint).padding(.horizontal, 5).padding(.vertical, 1)
                         .background(Palette.mint.opacity(0.12)).clipShape(Capsule())
                 }
                 Spacer()
-                if model.attentionCount > 0 {
+                if agent == nil, model.attentionCount > 0 {
                     Button(L("확인 필요 \(model.attentionCount)", "Needs attention \(model.attentionCount)")) {
                         model.openPrioritySession()
                     }
                     .font(.caption2).buttonStyle(.plain).foregroundStyle(Palette.attention)
                     .help(L("확인이 필요한 세션으로 이동 · ⇧⌘A", "Open a session needing attention · ⇧⌘A"))
                 }
-                if !model.recentActivities.isEmpty {
+                if agent == nil, !model.recentActivities.isEmpty {
                     Button(L("비우기", "Clear")) { model.clearRecentActivities() }
                         .font(.caption2).buttonStyle(.plain).foregroundStyle(Palette.muted)
                         .accessibilityLabel(L("최근 활동 기록 비우기", "Clear recent activity"))
                 }
             }
-            if model.recentActivities.isEmpty {
+            if activities.isEmpty {
                 HStack(spacing: 8) {
                     Image(systemName: "bell.badge").foregroundStyle(Palette.muted)
                     Text(L("놓친 작업 완료와 확인 요청이 여기에 모입니다.", "Missed completions and requests will appear here."))
@@ -106,11 +109,11 @@ struct RecentActivitiesView: View {
                 TimelineView(.periodic(from: .now, by: 60)) { timeline in
                     ScrollView {
                         LazyVStack(spacing: 4) {
-                            ForEach(model.recentActivities) { activity in
+                            ForEach(activities) { activity in
                                 activityRow(activity, now: timeline.date)
                             }
                         }
-                    }.frame(height: min(CGFloat(model.recentActivities.count) * 46, 138))
+                    }.frame(height: min(CGFloat(activities.count) * 46, 138))
                 }
             }
         }
@@ -142,7 +145,7 @@ struct RecentActivitiesView: View {
             .background(activity.isRead ? Color.white.opacity(0.025) : Color.white.opacity(0.055))
             .clipShape(.rect(cornerRadius: 8)).contentShape(Rectangle())
         }
-        .buttonStyle(.plain).opacity(available || resumable ? 1 : 0.7)
+        .buttonStyle(.plain)
         .help(available ? L("세션 열기", "Open session") : resumable ? L("같은 대화를 새 탭에서 이어가기", "Resume this conversation in a new tab") : L("대화 복원 정보가 없는 이전 기록", "This older event has no conversation restore details"))
     }
 }

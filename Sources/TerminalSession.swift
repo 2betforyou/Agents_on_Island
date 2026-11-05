@@ -239,7 +239,7 @@ final class TerminalSession: NSObject, Identifiable, LocalProcessTerminalViewDel
         if !terminal.process.running {
             ended = true; exitCode = -1
             Log.session.error("PTY start failed for \(self.kind.rawValue, privacy: .public)")
-            terminal.feed(text: "\r\n\u{1b}[31mNotchAgent: " + L("터미널을 시작하지 못했습니다. 작업 폴더 권한과 /bin/zsh를 확인하세요.", "Could not start the terminal. Check the work folder permissions and /bin/zsh.") + "\u{1b}[0m\r\n")
+            terminal.feed(text: "\r\n\u{1b}[31mAgents on Island: " + L("터미널을 시작하지 못했습니다. 작업 폴더 권한과 /bin/zsh를 확인하세요.", "Could not start the terminal. Check the work folder permissions and /bin/zsh.") + "\u{1b}[0m\r\n")
         }
     }
     /// Ends the session and everything it started. Children that ignore SIGHUP/SIGTERM

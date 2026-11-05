@@ -81,7 +81,7 @@ struct SettingsView: View {
                         if value { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
                     } catch { loginError = error.localizedDescription }
                     if SMAppService.mainApp.status == .requiresApproval {
-                        loginError = L("시스템 설정 → 일반 → 로그인 항목에서 NotchAgent를 허용하세요.", "Allow NotchAgent in System Settings → General → Login Items.")
+                        loginError = L("시스템 설정 → 일반 → 로그인 항목에서 Agents on Island를 허용하세요.", "Allow Agents on Island in System Settings → General → Login Items.")
                     }
                     loginEnabled = SMAppService.mainApp.status == .enabled
                 }
@@ -93,7 +93,7 @@ struct SettingsView: View {
             Form {
             Section(L("화면", "Display")) {
                 LabeledContent(L("현재 위치", "Current display"), value: model.displayName)
-                Text(model.hasPhysicalNotch ? L("실제 카메라 노치 위치에 정렬됨 · 메뉴바 높이와 카메라 폭 자동 감지", "Aligned to the camera notch · menu bar height and camera width detected") : L("활성 화면에서 실제 노치를 감지하지 못했습니다. 맥북 내장 화면이 활성화되면 자동으로 노치로 이동합니다.", "No camera notch on the active display. NotchAgent moves to the notch when the built-in display is active."))
+                Text(model.hasPhysicalNotch ? L("실제 카메라 노치 위치에 정렬됨 · 메뉴바 높이와 카메라 폭 자동 감지", "Aligned to the camera notch · menu bar height and camera width detected") : L("활성 화면에서 실제 노치를 감지하지 못했습니다. 맥북 내장 화면이 활성화되면 자동으로 노치로 이동합니다.", "No camera notch on the active display. Agents on Island moves to the notch when the built-in display is active."))
                     .font(.caption).foregroundStyle(model.hasPhysicalNotch ? Color.secondary : .orange)
                 Picker(L("표시 화면", "Display"), selection: $model.preferredDisplay) {
                     Text(L("내장 노치 화면 우선", "Built-in notch display first")).tag("builtin")
@@ -179,7 +179,7 @@ struct SettingsView: View {
                 pathField("Claude", text: $claudePath, kind: .claude)
                 pathField("Gemini", text: $geminiPath, kind: .gemini)
             } header: { Text(L("CLI 실행 파일", "CLI executables")) } footer: {
-                Text(L("비워두면 Homebrew와 일반 설치 경로에서 찾습니다. 설치와 로그인은 각 CLI에서 진행하세요. API 키를 NotchAgent에 입력하지 않습니다.", "Leave empty to search Homebrew and common install paths. Install and sign in with each CLI; never enter API keys into NotchAgent."))
+                Text(L("비워두면 Homebrew와 일반 설치 경로에서 찾습니다. 설치와 로그인은 각 CLI에서 진행하세요. API 키를 Agents on Island에 입력하지 않습니다.", "Leave empty to search Homebrew and common install paths. Install and sign in with each CLI; never enter API keys into Agents on Island."))
             }
             Section(L("사용량", "Usage")) {
                 Toggle(L("Codex 계정 사용량 조회", "Show Codex account usage"), isOn: Binding(get: { model.usage.enabled }, set: { model.usage.setEnabled($0) }))
@@ -197,7 +197,7 @@ struct SettingsView: View {
                 if model.claudeUsage.enabled {
                     UsageReadingStatus(agent: .claude, snapshot: model.claudeUsage.snapshot, refresh: { model.claudeUsage.reload() })
                 }
-                Text(L("NotchAgent에서 새로 여는 Claude Code 세션이 보고하는 5시간·주간 한도를 표시합니다(Pro/Max, 첫 응답 이후). 로그인 정보는 읽지 않으며, 기존 상태 표시줄 설정은 그대로 동작합니다.", "Shows the 5-hour and weekly limits reported by Claude Code sessions you open in NotchAgent (Pro/Max, after the first response). Sign-in data is never read, and your own status line keeps working."))
+                Text(L("Agents on Island에서 새로 여는 Claude Code 세션이 보고하는 5시간·주간 한도를 표시합니다(Pro/Max, 첫 응답 이후). 로그인 정보는 읽지 않으며, 기존 상태 표시줄 설정은 그대로 동작합니다.", "Shows the 5-hour and weekly limits reported by Claude Code sessions you open in Agents on Island (Pro/Max, after the first response). Sign-in data is never read, and your own status line keeps working."))
                     .font(.caption).foregroundStyle(.secondary)
                 if model.claudeUsage.enabled, let snapshot = model.claudeUsage.snapshot {
                     LabeledContent(L("Claude 마지막 갱신", "Claude last updated"), value: snapshot.fetchedAt.formatted(date: .abbreviated, time: .shortened))
@@ -234,7 +234,7 @@ struct SettingsView: View {
                 Text(L("앱을 종료하면 열려 있는 터미널과 에이전트 세션도 종료됩니다.", "Quitting the app also ends open terminal and agent sessions."))
                     .font(.caption).foregroundStyle(.secondary)
             }
-            Text("NotchAgent \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "") · SwiftTerm (MIT)")
+            Text("Agents on Island \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "") · SwiftTerm (MIT)")
                 .font(.caption2).foregroundStyle(.secondary)
             }
             .formStyle(.grouped)
@@ -353,7 +353,7 @@ struct WelcomeView: View {
         VStack(alignment: .leading, spacing: 25) {
             HStack(spacing: 10) {
                 AppMark(size: 22)
-                Text("NotchAgent").fontWeight(.semibold)
+                Text("Agents on Island").fontWeight(.semibold)
                 Spacer()
                 Text("EARLY ACCESS").font(.caption2.monospaced()).foregroundStyle(Palette.muted)
             }

@@ -7,12 +7,15 @@ app="$NOTCHAGENT_BUILD_DIR/DerivedData/Build/Products/Release/NotchAgent.app"
 codesign --verify --deep --strict "$app"
 mkdir -p "$project_dir/Dist"
 version="$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "$app/Contents/Info.plist")"
-archive="$project_dir/Dist/NotchAgent-$version-macOS.zip"
+archive="$project_dir/Dist/Agents_on_Island-$version-macOS.zip"
 if [ -e "$archive" ]; then
   printf '%s already exists. Move it aside before packaging a new build.\n' "$archive" >&2
   exit 1
 fi
-# Archive the clean build product, not the iCloud-backed live app in Dist/.
-ditto -c -k --norsrc --noextattr --keepParent "$app" "$archive"
+# Keep the existing Xcode target and executable for compatibility, but ship the new app name.
+package_dir="$(mktemp -d "${TMPDIR:-/tmp}/aoi-package.XXXXXX")"
+trap 'rm -rf "$package_dir"' EXIT
+ditto --norsrc --noextattr "$app" "$package_dir/Agents on Island.app"
+ditto -c -k --norsrc --noextattr --keepParent "$package_dir/Agents on Island.app" "$archive"
 shasum -a 256 "$archive" > "$archive.sha256"
 printf '\nPackaged %s (local ad-hoc signature, not notarized).\n' "$archive"

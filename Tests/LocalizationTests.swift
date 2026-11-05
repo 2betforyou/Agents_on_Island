@@ -32,6 +32,12 @@ final class LocalizationTests: XCTestCase {
         XCTAssertEqual(AppLanguage.english.name, "English")
         XCTAssertEqual(AppLanguage.system.name, "Match System")
     }
+    func testTokenUnitsFollowAppLanguageInsteadOfSystemLocale() {
+        XCTAssertTrue(AppLanguage.english.compactNumber(6_950_000).hasSuffix("M"))
+        XCTAssertTrue(AppLanguage.korean.compactNumber(6_950_000).contains("만"))
+        XCTAssertEqual(AppLanguage.english.locale.identifier, "en_US")
+        XCTAssertEqual(AppLanguage.korean.locale.identifier, "ko_KR")
+    }
     /// Every L("…", "…") call in the app has a non-empty English side that is not Korean.
     func testEverySourceStringHasAnEnglishTranslation() throws {
         let sources = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("Sources")

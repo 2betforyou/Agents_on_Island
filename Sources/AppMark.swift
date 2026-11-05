@@ -57,7 +57,7 @@ enum MenuBarIcon {
             return true
         }
         image.isTemplate = true
-        image.accessibilityDescription = "NotchAgent"
+        image.accessibilityDescription = "Agents on Island"
         return image
     }
 }

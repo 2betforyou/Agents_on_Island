@@ -9,11 +9,11 @@ final class AppModel {
     var selectedID: UUID?
     var lastError: String?
     var compactWidth: CGFloat = 200
-    var notchHeight: CGFloat = 32
+    var notchHeight: CGFloat = IslandMetrics.compactHeight
     var panelWidth: CGFloat = 900
     var panelHeight: CGFloat = 570
     var hasPhysicalNotch = true
-    /// Width of the camera housing; the top row keeps only this strip empty.
+    /// Display hardware metadata; the floating surface no longer reserves this width.
     var physicalNotchWidth: CGFloat = 0
     var displayName = ""
     var workspaces: [SavedWorkspace] = []
@@ -162,8 +162,10 @@ final class AppModel {
     }
     /// Measured by the view; the island and its hover area use the same height.
     var previewContentHeight: CGFloat = 0 { didSet { layoutChanged?() } }
+    var agentPreviewHeights: [AgentKind: CGFloat] = [:]
     var previewHeight: CGFloat {
-        previewContentHeight > 0 ? previewContentHeight : 440 + notchHeight
+        if let previewAgent { return agentPreviewHeights[previewAgent] ?? 250 }
+        return previewContentHeight > 0 ? previewContentHeight : 440 + notchHeight
     }
     var hostHeight: CGFloat { max(panelHeight, previewHeight) }
     var attentionCount: Int { sessions.filter { $0.attention != nil }.count }
@@ -263,9 +265,118 @@ final class AppModel {
         [claudeUsage.enabled ? IdleUsage(agent: .claude, snapshot: claudeUsage.snapshot) : nil,
          usage.enabled ? IdleUsage(agent: .codex, snapshot: usage.snapshot) : nil].compactMap { $0 }
     }
-    /// Camera housing width (a virtual notch on displays without one).
-    var notchGapWidth: CGFloat { compactWidth - 100 }
-    /// With nothing to show, the wings vanish into the notch; an unread error keeps a small one.
+    /// Keep the real camera clear; displays without a notch use only a small inter-island gap.
+    var previewAgent: AgentKind?
+    var optionConcealed = false
+    let tokenHistory = AgentTokenHistoryService()
+    var agentPreviewWidth: CGFloat {
+        guard let kind = previewAgent else { return 570 }
+        let titles = sessions.filter { !$0.ended && $0.kind == kind }.map(\.displayTitle)
+        let font = NSFont.systemFont(ofSize: 13, weight: .medium)
+        let titleWidth = ([kind.name] + titles).map { ($0 as NSString).size(withAttributes: [.font: font]).width }.max() ?? 0
+        // Two quota windows need 280pt plus the footer and panel insets.
+        return min(380, max(330, ceil(titleWidth) + 76))
+    }
+    var islandOffsetX: CGFloat {
+        phase == .preview ? expansionOriginX : 0
+    }
+    var expansionOriginX: CGFloat {
+        guard let kind = previewAgent else { return 0 }
+        let bounds = CGRect(x: -closedWidth / 2, y: 0, width: closedWidth, height: closedHeight)
+        if let origin = agentIslandFrames(in: bounds).first(where: { $0.kind == kind }) { return origin.frame.midX }
+        // A working-only island may finish while its preview is open; keep it on its own side.
+        let center = notchGapWidth / 2 + agentIslandSize(kind).width / 2
+        return kind == .claude || kind == .gemini ? -center : center
+    }
+    var notchGapWidth: CGFloat { hasPhysicalNotch ? max(0, physicalNotchWidth) + 16 : IslandMetrics.mockCameraWidth + IslandMetrics.compactGap * 2 }
+    func mockCameraFrame(in rect: CGRect) -> CGRect {
+        CGRect(x: rect.midX - IslandMetrics.mockCameraWidth / 2, y: rect.maxY - notchHeight,
+               width: IslandMetrics.mockCameraWidth, height: notchHeight)
+    }
+    var closedIslandKinds: [AgentKind] {
+        let kinds = [AgentKind.claude, .codex, .gemini, .shell].filter { kind in
+            (quietNotchShowsUsage && idleUsages.contains { $0.agent == kind })
+                || (notchShowsWorking && workingNotchSessions.contains { $0.kind == kind })
+                || banner?.kind == kind
+        }
+        return kinds.isEmpty ? [.shell] : kinds
+    }
+    func islandKinds(onLeft: Bool) -> [AgentKind] {
+        closedIslandKinds.filter { ($0 == .claude || $0 == .gemini) == onLeft }
+    }
+    func agentIslandSize(_ kind: AgentKind) -> CGSize {
+        let font = NSFont.monospacedDigitSystemFont(ofSize: 11, weight: .semibold)
+        func textWidth(_ text: String) -> CGFloat { ceil((text as NSString).size(withAttributes: [.font: font]).width) }
+        if let banner, banner.kind == kind {
+            return CGSize(width: min(240, max(110, max(textWidth(banner.folder), textWidth(banner.reason.title)) + 24)), height: 64)
+        }
+        let working = notchShowsWorking ? workingNotchSessions.filter { $0.kind == kind } : []
+        if !working.isEmpty {
+            let elapsed = working.compactMap(\.workingSince).min().map { NotchStatus.elapsed(since: $0, now: Date()) } ?? ""
+            let count = notchShowsWorkCount && working.count > 1 ? textWidth("\(working.count)") + 6 : 0
+            return CGSize(width: 14 + 6 + max(18, textWidth(elapsed)) + count + 16, height: notchHeight)
+        }
+        if quietNotchShowsUsage, let quota = idleUsages.first(where: { $0.agent == kind }) {
+            return CGSize(width: 21 + 5 + textWidth("\(Int(quota.session.remaining))%") + 16, height: notchHeight)
+        }
+        return CGSize(width: 32, height: notchHeight)
+    }
+    var islandSideWidth: CGFloat {
+        [true, false].map { left in
+            let kinds = islandKinds(onLeft: left)
+            return kinds.reduce(CGFloat.zero) { $0 + agentIslandSize($1).width } + CGFloat(max(0, kinds.count - 1)) * 8
+        }.max() ?? 0
+    }
+    func agentIslandFrames(in rect: CGRect) -> [(kind: AgentKind, frame: CGRect)] {
+        var result: [(AgentKind, CGRect)] = []
+        for left in [true, false] {
+            let kinds = islandKinds(onLeft: left)
+            let total = kinds.reduce(CGFloat.zero) { $0 + agentIslandSize($1).width } + CGFloat(max(0, kinds.count - 1)) * 8
+            var x = left ? rect.midX - notchGapWidth / 2 - total : rect.midX + notchGapWidth / 2
+            for kind in kinds {
+                let size = agentIslandSize(kind)
+                result.append((kind, CGRect(x: x, y: rect.maxY - size.height, width: size.width, height: size.height)))
+                x += size.width + 8
+            }
+        }
+        return result
+    }
+    /// Neighbors keep their identities and move only far enough to clear the expanded surface.
+    /// The camera (real or mock) never participates in collision displacement.
+    func presentedAgentIslandFrames(in rect: CGRect) -> [(kind: AgentKind, frame: CGRect)] {
+        let frames = agentIslandFrames(in: rect)
+        guard phase == .preview else { return frames }
+        let center = rect.midX + islandOffsetX
+        var leftEdge = center - islandWidth / 2 - 8
+        var rightEdge = center + islandWidth / 2 + 8
+        var positions: [AgentKind: CGRect] = [:]
+        let neighbors = frames.filter { $0.kind != previewAgent }
+        for item in neighbors.filter({ $0.frame.midX < center }).sorted(by: { $0.frame.midX > $1.frame.midX }) {
+            var frame = item.frame
+            frame.origin.x = min(frame.maxX, leftEdge) - frame.width
+            positions[item.kind] = frame
+            leftEdge = frame.minX - 8
+        }
+        for item in neighbors.filter({ $0.frame.midX >= center }).sorted(by: { $0.frame.midX < $1.frame.midX }) {
+            var frame = item.frame
+            frame.origin.x = max(frame.minX, rightEdge)
+            positions[item.kind] = frame
+            rightEdge = frame.maxX + 8
+        }
+        return frames.map { ($0.kind, positions[$0.kind] ?? $0.frame) }
+    }
+    func openAgentIsland(_ kind: AgentKind) {
+        previewAgent = kind
+        if banner?.kind == kind { openBanner(); return }
+        let matching = sessions.filter { !$0.ended && $0.kind == kind }
+        if let session = matching.first(where: { $0.attention != nil }) ?? matching.first(where: \.isWorking) ?? matching.last {
+            openSession(id: session.id)
+        } else {
+            if kind != .shell { quickAgent = kind }
+            selectHome(); showTerminal?()
+        }
+    }
+    /// Compact content stays centered independently of the display's camera width.
     /// Elapsed time plus a working-session count needs more room than the status alone.
     var closedWingWidth: CGFloat {
         let wing = closedLayout.wingWidth
@@ -273,10 +384,24 @@ final class AppModel {
         return wing == 0 && lastError != nil ? 32 : wing
     }
     var closedWidth: CGFloat {
-        let width = notchGapWidth + closedWingWidth * 2
-        return banner == nil ? width : max(width, 400)
+        notchGapWidth + islandSideWidth * 2
     }
-    var closedHeight: CGFloat { banner == nil ? notchHeight : notchHeight + 52 }
+    var closedHeight: CGFloat { closedIslandKinds.map { agentIslandSize($0).height }.max() ?? notchHeight }
+    var islandWidth: CGFloat {
+        switch phase {
+        case .closed: closedWidth
+        case .preview: min(previewAgent == nil ? 570 : agentPreviewWidth, panelWidth)
+        case .terminal: panelWidth
+        }
+    }
+    var islandHeight: CGFloat {
+        switch phase {
+        case .closed: closedHeight
+        case .preview: previewHeight
+        case .terminal: panelHeight
+        }
+    }
+    var islandCornerRadius: CGFloat { phase == .closed && banner == nil ? notchHeight / 2 : IslandMetrics.expandedRadius }
     static let bannerDuration: TimeInterval = 6
     /// Called once a second: updates working state and raises notices for unseen sessions.
     func tickActivity(now: Date = Date(), terminalIsVisible: Bool = true) {
@@ -466,7 +591,7 @@ final class AppModel {
         panel.canChooseFiles = false; panel.canChooseDirectories = true
         panel.allowsMultipleSelection = true
         panel.prompt = L("작업 폴더 추가", "Add Folder")
-        panel.message = L("NotchAgent에서 관리할 작업 폴더를 선택하세요. 여러 개를 한 번에 추가할 수 있습니다.", "Choose work folders for NotchAgent. You can add several at once.")
+        panel.message = L("Agents on Island에서 관리할 작업 폴더를 선택하세요. 여러 개를 한 번에 추가할 수 있습니다.", "Choose work folders for Agents on Island. You can add several at once.")
         panel.directoryURL = URL(fileURLWithPath: workspacePath)
         NSApp.activate()
         guard panel.runModal() == .OK else { return }

@@ -36,9 +36,9 @@ final class ClosedNotchTests: XCTestCase {
         model.usage.enabled = false; model.claudeUsage.enabled = false // no quota to show
         model.compactWidth = 285 // 185 pt camera + 100
         model.sessions = []
-        XCTAssertEqual(model.closedWidth, 185, "idle: exactly the camera housing")
+        XCTAssertEqual(model.closedWidth, 80, "idle: a compact icon island beside the camera")
         model.lastError = "x"
-        XCTAssertEqual(model.closedWidth, 185 + 64)
+        XCTAssertEqual(model.closedWidth, 80, "the error marker stays inside its own island")
     }
     func testNonZeroExitIsAnError() throws {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("NotchAgentFail-" + UUID().uuidString)
@@ -62,8 +62,8 @@ final class ClosedNotchTests: XCTestCase {
     }
     func testIdleUsageRingIsWeeklyAndNumberIsFiveHour() throws {
         let usage = try XCTUnwrap(IdleUsage(agent: .claude, snapshot: snapshot([24, 85])))
-        XCTAssertEqual(usage.session.consumed, 24, "the number: 5-hour quota used")
-        XCTAssertEqual(usage.weekly.consumed, 85, "the ring: weekly quota used")
+        XCTAssertEqual(usage.session.remaining, 76, "the number: 5-hour quota left")
+        XCTAssertEqual(usage.weekly.remaining, 15, "the ring: weekly quota left")
         let reversed = UsageSnapshot(windows: snapshot([24, 85]).windows.reversed(), fetchedAt: Date())
         XCTAssertEqual(IdleUsage(agent: .claude, snapshot: reversed), usage, "picked by length, not order")
         let single = try XCTUnwrap(IdleUsage(agent: .codex, snapshot: snapshot([40])))

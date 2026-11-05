@@ -41,7 +41,7 @@ final class IslandPanel: NSPanel {
     }
     override var canBecomeKey: Bool { acceptsKeyboard }
     override var canBecomeMain: Bool { false }
-    // AppKit pushes windows below the menu bar by default; the island must sit on the notch itself.
+    // Our shared geometry already accounts for menu bars, cutouts, and the shadow margin.
     override func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect { frameRect }
     override func sendEvent(_ event: NSEvent) {
         if event.type == .keyDown, let terminal = firstResponder as? AgentTerminalView {
@@ -91,7 +91,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         panel.level = NSWindow.Level(rawValue: NSWindow.Level.mainMenu.rawValue + 3)
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
         panel.contentView = NSHostingView(rootView: IslandView(model: model))
-        panel.setAccessibilityLabel("NotchAgent")
+        panel.setAccessibilityLabel("Agents on Island")
         model.showTerminal = { [weak self] in
             self?.model.showsInlineSettings = false
             self?.expand()
@@ -182,18 +182,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         model.displayName = target.localizedName
         let notch = target.safeAreaInsets.top
         model.hasPhysicalNotch = notch > 0
-        model.notchHeight = max(30, notch)
+        model.notchHeight = IslandMetrics.compactHeight
         let physicalWidth: CGFloat
         if let left = target.auxiliaryTopLeftArea, let right = target.auxiliaryTopRightArea, notch > 0 {
             physicalWidth = max(0, right.minX - left.maxX)
         } else { physicalWidth = 110 }
         model.compactWidth = physicalWidth + 100
         model.physicalNotchWidth = notch > 0 ? physicalWidth : 0
+        let availableHeight = IslandGeometry.topEdge(screen: target.frame, visible: target.visibleFrame, safeAreaTop: notch) - target.visibleFrame.minY
         let fitted = model.terminalSize.fitted(to: target.frame.size)
         model.panelWidth = fitted.width
-        model.panelHeight = fitted.height
-        let size = NSSize(width: model.panelWidth + 32, height: model.hostHeight + 32)
-        panel.setFrame(NSRect(x: target.frame.midX - size.width / 2, y: target.frame.maxY - size.height, width: size.width, height: size.height), display: true)
+        model.panelHeight = min(fitted.height, max(0, availableHeight - IslandMetrics.shadowInset))
+        let hostFrame = IslandGeometry.hostFrame(screen: target.frame, visible: target.visibleFrame, safeAreaTop: notch,
+                                               content: CGSize(width: model.panelWidth, height: model.hostHeight))
+        if panel.frame != hostFrame { panel.setFrame(hostFrame, display: true) }
     }
     private var pointerInterval: TimeInterval = 0
     /// Re-arms the pointer timer only when the rate changes; a small tolerance lets macOS
@@ -210,16 +212,43 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         timer = t
     }
     private func trackPointer() {
-        guard !locked, !menuTracking, var screen else { return }
+        guard !locked, var screen else { return }
+        // Poll modifiers without consuming keyboard events or requiring Accessibility access.
+        let conceal = NSEvent.modifierFlags.contains(.option) && model.phase == .closed
+        if model.optionConcealed != conceal { model.optionConcealed = conceal }
+        if conceal {
+            panel.ignoresMouseEvents = true
+            hoverStart = nil; leaveStart = nil
+            schedulePointerTimer(0.05)
+            return
+        }
+        guard !menuTracking else { return }
         // "Pointer" mode: the closed island follows the mouse to whichever display it is on.
         if model.preferredDisplay == "pointer", model.phase == .closed,
            let pointerScreen = NSScreen.screens.first(where: { $0.frame.contains(NSEvent.mouseLocation) }), pointerScreen != screen {
             positionPanel(); screen = self.screen ?? screen
         }
-        let width = model.phase == .closed ? model.closedWidth : model.phase == .preview ? min(570, model.panelWidth) : model.panelWidth
-        let height = model.phase == .closed ? model.closedHeight : model.phase == .preview ? model.previewHeight : model.panelHeight
-        let rect = NSRect(x: screen.frame.midX - width / 2, y: screen.frame.maxY - height, width: width, height: height)
-        let inside = rect.contains(NSEvent.mouseLocation)
+        let rect = IslandGeometry.surfaceFrame(screen: screen.frame, visible: screen.visibleFrame, safeAreaTop: screen.safeAreaInsets.top,
+                                              size: CGSize(width: model.islandWidth, height: model.islandHeight)).offsetBy(dx: model.islandOffsetX, dy: 0)
+        let inside: Bool
+        if model.phase == .closed {
+            let hovered = model.agentIslandFrames(in: rect).first {
+                IslandShape(radius: min(18, $0.frame.height / 2)).path(in: $0.frame).contains(NSEvent.mouseLocation)
+            }
+            let overCamera = !model.hasPhysicalNotch && Capsule().path(in: model.mockCameraFrame(in: rect)).contains(NSEvent.mouseLocation)
+            inside = hovered != nil || overCamera
+            if inside, model.previewAgent != hovered?.kind { model.previewAgent = hovered?.kind }
+        } else {
+            let closedRect = IslandGeometry.surfaceFrame(screen: screen.frame, visible: screen.visibleFrame, safeAreaTop: screen.safeAreaInsets.top,
+                                                        size: CGSize(width: model.closedWidth, height: model.closedHeight))
+            let neighbor = model.phase == .preview ? model.presentedAgentIslandFrames(in: closedRect).first {
+                $0.kind != model.previewAgent && IslandShape(radius: $0.frame.height / 2).path(in: $0.frame).contains(NSEvent.mouseLocation)
+            } : nil
+            inside = neighbor != nil || IslandShape(radius: model.islandCornerRadius).path(in: rect).contains(NSEvent.mouseLocation)
+            if let neighbor {
+                withAnimation(NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? nil : Motion.island) { model.previewAgent = neighbor.kind }
+            }
+        }
         let near = rect.insetBy(dx: -PointerPolling.nearMargin, dy: -PointerPolling.nearMargin).contains(NSEvent.mouseLocation)
         schedulePointerTimer(PointerPolling.interval(near: near, phase: model.phase, pending: hoverStart != nil || leaveStart != nil))
         // Keep delivering a drag (for example a terminal selection) that leaves the island.
@@ -230,13 +259,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if inside {
             leaveStart = nil
             if hoverStart == nil { hoverStart = Date() }
-            if model.hoverEnabled, model.phase == .closed, Date().timeIntervalSince(hoverStart!) > model.hoverSpeed.delay { model.phase = .preview }
+            if model.hoverEnabled, model.phase == .closed, Date().timeIntervalSince(hoverStart!) > model.hoverSpeed.delay { transition(to: .preview) }
         } else {
             hoverStart = nil
             if leaveStart == nil { leaveStart = Date() }
             if model.phase == .preview, Date().timeIntervalSince(leaveStart!) > 0.28 {
                 // If the preview holds keyboard focus (after a quick prompt), hand it back too.
-                if panel.isKeyWindow { collapse() } else { model.phase = .closed }
+                if panel.isKeyWindow { collapse() } else { transition(to: .closed) }
             }
         }
     }
@@ -247,13 +276,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.activate(); panel.makeKeyAndOrderFront(nil)
         model.quickPromptActive = true
     }
+    private func transition(to phase: IslandPhase) {
+        withAnimation(NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? nil : Motion.island) {
+            model.phase = phase
+        }
+    }
     @objc func expand() {
         if model.phase != .terminal {
             if let front = NSWorkspace.shared.frontmostApplication,
                front.processIdentifier != ProcessInfo.processInfo.processIdentifier { previousApp = front }
             positionPanel()
         }
-        model.phase = .terminal
+        transition(to: .terminal)
         panel.acceptsKeyboard = true; panel.ignoresMouseEvents = false
         NSApp.activate(); panel.makeKeyAndOrderFront(nil)
         if !model.showsInlineSettings, let terminal = model.selected?.terminal { panel.makeFirstResponder(terminal) }
@@ -261,7 +295,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func collapse() { collapse(restoringFocus: true) }
     private func collapse(restoringFocus: Bool) {
         let hadFocus = panel.isKeyWindow
-        model.phase = .closed; panel.acceptsKeyboard = false
+        transition(to: .closed); panel.acceptsKeyboard = false
         panel.resignKey()
         hoverStart = nil; leaveStart = nil
         if restoringFocus, hadFocus, let previousApp, previousApp.processIdentifier != ProcessInfo.processInfo.processIdentifier {
@@ -316,10 +350,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Status item menu and the main menu (edit commands for the terminal); rebuilt on language change.
     private func buildMenus() {
         let menu = NSMenu()
-        menu.addItem(withTitle: L("NotchAgent 열기 / 접기", "Open / Close NotchAgent"), action: #selector(toggle), keyEquivalent: "")
+        menu.addItem(withTitle: L("Agents on Island 열기 / 접기", "Open / Close Agents on Island"), action: #selector(toggle), keyEquivalent: "")
         menu.addItem(withTitle: L("설정…", "Settings…"), action: #selector(showSettings), keyEquivalent: ",")
         menu.addItem(.separator())
-        menu.addItem(withTitle: L("NotchAgent 종료", "Quit NotchAgent"), action: #selector(quit), keyEquivalent: "q")
+        menu.addItem(withTitle: L("Agents on Island 종료", "Quit Agents on Island"), action: #selector(quit), keyEquivalent: "q")
         for item in menu.items { item.target = self }
         statusItem.menu = menu
         // Main menu supplies standard edit actions to the embedded terminal and text fields.
@@ -351,7 +385,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return noErr
         }, 1, &spec, Unmanaged.passUnretained(self).toOpaque(), &eventHandler)
         if !register(model.hotkey) {
-            model.lastError = L("\(model.hotkey.label) 단축키를 등록할 수 없습니다. 다른 앱의 단축키와 충돌하는지 확인하세요. 메뉴 막대로 열 수 있습니다.", "Could not register \(model.hotkey.label). Another app may be using it. You can still open NotchAgent from the menu bar.")
+            model.lastError = L("\(model.hotkey.label) 단축키를 등록할 수 없습니다. 다른 앱의 단축키와 충돌하는지 확인하세요. 메뉴 막대로 열 수 있습니다.", "Could not register \(model.hotkey.label). Another app may be using it. You can still open Agents on Island from the menu bar.")
         }
         model.applyHotkey = { [weak self] new in self?.changeHotkey(to: new) ?? false }
         model.suspendHotkey = { [weak self] suspended in
@@ -383,7 +417,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
     private func showWelcome() {
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 560, height: 530), styleMask: [.titled, .closable], backing: .buffered, defer: false)
-        window.title = "NotchAgent"; window.isReleasedWhenClosed = false
+        window.title = "Agents on Island"; window.isReleasedWhenClosed = false
         window.contentView = NSHostingView(rootView: WelcomeView { [weak self] in
             UserDefaults.standard.set(true, forKey: "onboarded")
             self?.welcomeWindow?.close(); self?.expand()
@@ -397,7 +431,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let busy = model.sessions.filter(\.isBusy).count
         if busy > 0 {
             let alert = NSAlert()
-            alert.messageText = L("NotchAgent를 종료할까요?", "Quit NotchAgent?")
+            alert.messageText = L("Agents on Island를 종료할까요?", "Quit Agents on Island?")
             alert.informativeText = L("\(busy)개의 세션에서 입력 중인 내용이나 진행 중인 작업이 사라질 수 있습니다.", "Unsubmitted input or work in progress may be lost in \(sessionCount(busy)).")
             alert.addButton(withTitle: L("취소", "Cancel")); alert.addButton(withTitle: L("종료", "Quit"))
             if runAlert(alert) != .alertSecondButtonReturn { return .terminateCancel }

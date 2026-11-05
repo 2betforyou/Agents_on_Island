@@ -55,8 +55,8 @@ notarize() {
   }
 }
 
-zip="$out_dir/NotchAgent-$version-macOS.zip"
-dmg="$out_dir/NotchAgent-$version.dmg"
+zip="$out_dir/Agents_on_Island-$version-macOS.zip"
+dmg="$out_dir/Agents_on_Island-$version.dmg"
 if [ "${SKIP_NOTARIZE:-0}" != 1 ]; then
   ditto -c -k --norsrc --noextattr --keepParent "$app" "$build_dir/notarize.zip"
   notarize "$build_dir/notarize.zip"
@@ -65,11 +65,11 @@ fi
 
 step "Create DMG"
 stage="$build_dir/dmg"; rm -rf "$stage"; mkdir -p "$stage"
-ditto --norsrc --noextattr "$app" "$stage/NotchAgent.app"
+ditto --norsrc --noextattr "$app" "$stage/Agents on Island.app"
 ln -s /Applications "$stage/Applications"
-hdiutil create -quiet -volname "NotchAgent $version" -srcfolder "$stage" -fs HFS+ -format UDZO -ov "$dmg"
+hdiutil create -quiet -volname "Agents on Island $version" -srcfolder "$stage" -fs HFS+ -format UDZO -ov "$dmg"
 codesign --sign "$DEVELOPER_ID" --timestamp "$dmg"
-ditto -c -k --norsrc --noextattr --keepParent "$app" "$zip"
+ditto -c -k --norsrc --noextattr --keepParent "$stage/Agents on Island.app" "$zip"
 
 if [ "${SKIP_NOTARIZE:-0}" != 1 ]; then
   notarize "$dmg"

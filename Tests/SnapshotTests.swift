@@ -135,7 +135,7 @@ final class SnapshotTests: XCTestCase {
         func closedRender(_ sessions: [TerminalSession], name: String) throws {
             let m = AppModel(usage: model.usage)
             m.claudeUsage.enabled = true; m.claudeUsage.reload()
-            m.notchHeight = 32; m.compactWidth = 285; m.panelWidth = 900; m.panelHeight = 570
+            m.notchHeight = 28; m.compactWidth = 285; m.physicalNotchWidth = 185; m.panelWidth = 900; m.panelHeight = 570
             m.sessions = sessions; m.phase = .closed
             let host = NSHostingView(rootView: IslandView(model: m))
             host.frame = NSRect(x: 0, y: 0, width: 932, height: 100)

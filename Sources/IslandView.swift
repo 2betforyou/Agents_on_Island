@@ -28,10 +28,10 @@ enum Palette {
 }
 
 /// One motion language for the whole app, tuned to feel like the Dynamic Island: the island
-/// itself moves on a slightly bouncy spring, smaller parts on a quicker, calmer one.
+/// itself expands without overshoot; smaller controls keep their existing response.
 enum Motion {
     /// Opening, closing and resizing the island.
-    static let island = Animation.spring(response: 0.42, dampingFraction: 0.76)
+    static let island = Animation.spring(response: 0.46, dampingFraction: 0.88)
     /// Selections, chips, tabs, counters, bars.
     static let snappy = Animation.spring(response: 0.3, dampingFraction: 0.84)
     /// Content fading in once the island has made room for it.
@@ -45,28 +45,15 @@ extension View {
     }
 }
 
-/// Concave upper shoulders visually join the island to the display edge.
+/// A detached continuous capsule, growing into a panel without edge-attached shoulders.
 struct IslandShape: Shape {
-    var shoulder: CGFloat = 12
     var radius: CGFloat = 24
-    // Corners and shoulders morph with the island instead of snapping.
-    var animatableData: AnimatablePair<CGFloat, CGFloat> {
-        get { AnimatablePair(shoulder, radius) }
-        set { shoulder = newValue.first; radius = newValue.second }
+    var animatableData: CGFloat {
+        get { radius }
+        set { radius = newValue }
     }
     func path(in rect: CGRect) -> Path {
-        var p = Path()
-        let s = min(shoulder, rect.height / 2), r = min(radius, rect.height / 2)
-        p.move(to: .zero)
-        p.addQuadCurve(to: CGPoint(x: s, y: s), control: CGPoint(x: s, y: 0))
-        p.addLine(to: CGPoint(x: s, y: rect.height - r))
-        p.addQuadCurve(to: CGPoint(x: s + r, y: rect.height), control: CGPoint(x: s, y: rect.height))
-        p.addLine(to: CGPoint(x: rect.width - s - r, y: rect.height))
-        p.addQuadCurve(to: CGPoint(x: rect.width - s, y: rect.height - r), control: CGPoint(x: rect.width - s, y: rect.height))
-        p.addLine(to: CGPoint(x: rect.width - s, y: s))
-        p.addQuadCurve(to: CGPoint(x: rect.width, y: 0), control: CGPoint(x: rect.width - s, y: 0))
-        p.closeSubpath()
-        return p
+        RoundedRectangle(cornerRadius: radius, style: radius >= rect.height / 2 ? .circular : .continuous).path(in: rect)
     }
 }
 
@@ -80,32 +67,42 @@ struct IslandView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Namespace private var tabHighlight
     @State private var draggedTab: UUID?
+    @State private var surfaceVisible = false
     private var width: CGFloat {
-        switch model.phase {
-        case .closed: model.closedWidth
-        case .preview: min(570, model.panelWidth)
-        case .terminal: model.panelWidth
-        }
+        model.islandWidth
     }
     private var height: CGFloat {
-        switch model.phase {
-        case .closed: model.closedHeight
-        case .preview: model.previewHeight
-        case .terminal: model.panelHeight
+        model.islandHeight
+    }
+    private var surfaceSize: CGSize {
+        if model.phase == .closed {
+            return CGSize(width: model.previewAgent.map { model.agentIslandSize($0).width } ?? IslandMetrics.mockCameraWidth, height: model.notchHeight)
         }
+        return CGSize(width: width, height: height)
     }
     var body: some View {
         ZStack(alignment: .top) {
-            IslandShape(shoulder: model.phase == .closed ? 6 : 14, radius: model.phase == .closed ? 12 : 26)
-                .fill(.black)
-                .shadow(color: .black.opacity(model.phase == .closed ? 0 : 0.3), radius: 12, y: 8)
+            // Keep the same surface alive in every phase so its bounds interpolate rather
+            // than inserting a full-sized background after the content has already changed.
+            ZStack {
+                IslandShape(radius: model.islandCornerRadius)
+                    .fill(.black).opacity(model.phase == .preview ? 0 : 1)
+                IslandGlassBackground(radius: model.islandCornerRadius)
+                    .opacity(model.phase == .preview ? 1 : 0)
+            }
+            .frame(width: surfaceSize.width, height: surfaceSize.height)
+            .clipShape(IslandShape(radius: model.islandCornerRadius))
+            .offset(x: model.phase == .closed ? model.expansionOriginX : 0)
+            .opacity(surfaceVisible ? 1 : 0)
+            .allowsHitTesting(false)
             if model.phase == .closed {
-                compact.modifier(FolderDropTarget(model: model))
-                    .transition(AnyTransition(.blurReplace).animation(reduceMotion ? nil : Motion.content))
+                Color.clear
             } else {
                 VStack(spacing: 0) {
-                    // The top row sits in the menu bar band; only the camera housing stays empty.
-                    topRow.modifier(FolderDropTarget(model: model)).padding(.bottom, 10)
+                    // Only the actual camera housing stays clear in the menu-bar header.
+                    if model.phase != .preview || model.previewAgent == nil {
+                        topRow.modifier(FolderDropTarget(model: model)).padding(.bottom, 10)
+                    }
                     if let error = model.lastError {
                         errorBanner(error).padding(.bottom, 10).transition(.move(edge: .top).combined(with: .opacity))
                     }
@@ -115,8 +112,9 @@ struct IslandView: View {
                     }
                     else { terminalPanel }
                 }
-                .padding(.horizontal, 26)
-                .padding(.bottom, model.phase == .terminal ? 8 : 18)
+                .padding(.horizontal, model.phase == .preview && model.previewAgent != nil ? 12 : 26)
+                .padding(.top, model.phase == .preview && model.previewAgent != nil ? model.notchHeight + 10 : 0)
+                .padding(.bottom, model.phase == .terminal ? 8 : 12)
                 // The preview is exactly as tall as its content (no dead space below the footer).
                 .fixedSize(horizontal: false, vertical: model.phase == .preview)
                 .background {
@@ -127,113 +125,56 @@ struct IslandView: View {
                     }
                 }
                 .onPreferenceChange(PreviewHeightKey.self) { height in
-                    if height > 0, abs(height - model.previewContentHeight) > 0.5 { model.previewContentHeight = height }
+                    guard height > 0 else { return }
+                    if let agent = model.previewAgent {
+                        if abs(height - (model.agentPreviewHeights[agent] ?? 0)) > 0.5 {
+                            model.agentPreviewHeights[agent] = height
+                        }
+                    } else if abs(height - model.previewContentHeight) > 0.5 { model.previewContentHeight = height }
                 }
                 .transition(.asymmetric(
-                    // Content materializes just after the island opens, and dissolves quickly.
-                    insertion: AnyTransition(.blurReplace).combined(with: .scale(scale: 0.96, anchor: .top))
-                        .animation(reduceMotion ? nil : Motion.content),
-                    removal: .opacity.animation(.easeIn(duration: 0.1))))
+                    insertion: .opacity.animation(reduceMotion ? nil : .easeOut(duration: 0.16).delay(0.12)),
+                    removal: .opacity.animation(reduceMotion ? nil : .easeOut(duration: 0.08))))
             }
         }
         .id(model.language)
         .frame(width: width, height: height, alignment: .top)
+        .clipShape(IslandShape(radius: model.islandCornerRadius))
+        .offset(x: model.islandOffsetX)
+        .motion(Motion.island, value: surfaceSize, reduce: reduceMotion)
         .motion(Motion.island, value: model.phase, reduce: reduceMotion)
         .motion(Motion.island, value: model.banner, reduce: reduceMotion)
+        .motion(Motion.island, value: model.closedLayout, reduce: reduceMotion)
         .motion(Motion.island, value: model.previewContentHeight, reduce: reduceMotion)
+        .motion(Motion.island, value: model.agentPreviewHeights, reduce: reduceMotion)
+        .motion(Motion.island, value: model.previewAgent, reduce: reduceMotion)
         .motion(Motion.snappy, value: model.lastError, reduce: reduceMotion)
+        .padding(.top, IslandMetrics.shadowInset)
         .frame(width: model.panelWidth + 32, height: model.hostHeight + 32, alignment: .top)
+        .overlay(alignment: .top) {
+            compact.modifier(FolderDropTarget(model: model))
+                .padding(.top, IslandMetrics.shadowInset)
+                .opacity(model.phase == .terminal ? 0 : 1)
+                .motion(Motion.island, value: model.phase, reduce: reduceMotion)
+                .allowsHitTesting(model.phase != .terminal)
+        }
         .foregroundStyle(.white)
         .tint(model.accent.color)
         .preferredColorScheme(.dark)
+        .environment(\.locale, model.language.locale)
+        .task(id: model.phase) {
+            if model.phase != .closed { surfaceVisible = true; return }
+            if !reduceMotion {
+                do { try await Task.sleep(for: .milliseconds(460)) } catch { return }
+            }
+            guard !Task.isCancelled, model.phase == .closed else { return }
+            surfaceVisible = false
+        }
     }
     private var compact: some View {
-        VStack(spacing: 0) {
-            Button { model.openPriorityOrTerminal() } label: {
-                HStack(spacing: 0) {
-                    leftWing.frame(width: model.closedWingWidth)
-                    Color.clear.frame(width: model.notchGapWidth) // camera housing
-                    rightWing.frame(width: model.closedWingWidth)
-                }
-                .frame(maxWidth: .infinity)
-                .frame(height: model.notchHeight)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(L("NotchAgent 열기, 실행 중인 세션 \(model.runningCount)개", "Open NotchAgent, \(sessionCount(model.runningCount, "running"))") + (model.attentionCount > 0 ? L(", 확인할 세션 \(model.attentionCount)개로 이동", ", open \(sessionCount(model.attentionCount)) needing attention") : ""))
-            if let banner = model.banner { bannerRow(banner) }
-        }
-        .motion(Motion.island, value: model.closedLayout, reduce: reduceMotion)
+        AgentIslandsView(model: model)
     }
-    /// Who: the agent (one session) or every session nearest the camera first (several).
-    @ViewBuilder private var leftWing: some View {
-        switch model.closedLayout {
-        case .idle: Color.clear
-        case .usage(let items):
-            if let first = items.first {
-                // Two agents: one per side. One agent: gauge here, number on the right.
-                if items.count > 1 { UsageBadge(usage: first, showsNumber: true) } else { UsageBadge(usage: first, showsNumber: false) }
-            }
-        case .single(let id):
-            if let session = model.sessions.first(where: { $0.id == id }) { SessionIcon(kind: session.kind, size: 15) }
-        case .multi(let left, _):
-            HStack(spacing: 4) { ForEach(left, id: \.self) { id in ringedIcon(id) } }
-                .frame(maxWidth: .infinity, alignment: .trailing).padding(.trailing, 6)
-        }
-    }
-    /// What: one status symbol (one session), or the rest of the sessions (several).
-    @ViewBuilder private var rightWing: some View {
-        switch model.closedLayout {
-        case .idle:
-            if model.lastError != nil { Circle().fill(.orange).frame(width: 6, height: 6) }
-        case .usage(let items):
-            if items.count > 1 { UsageBadge(usage: items[1], showsNumber: true) }
-            else if let only = items.first { UsageBadge.percent(only) }
-        case .single:
-            HStack(spacing: 4) {
-                NotchStatusView(status: model.closedWorkStatus)
-                if model.notchShowsWorkCount, model.workingNotchSessions.count > 1 {
-                    Text("\(model.workingNotchSessions.count)").font(.caption2.monospacedDigit())
-                        .accessibilityLabel(L("작업 중 \(model.workingNotchSessions.count)개", "\(model.workingNotchSessions.count) working"))
-                }
-            }
-        case .multi(_, let right):
-            HStack(spacing: 4) { ForEach(right, id: \.self) { id in ringedIcon(id) } }
-                .frame(maxWidth: .infinity, alignment: .leading).padding(.leading, 6)
-        }
-    }
-    @ViewBuilder private func ringedIcon(_ id: UUID) -> some View {
-        if let session = model.sessions.first(where: { $0.id == id }) {
-            RingedSessionIcon(kind: session.kind, badge: NotchBadge(attention: session.attention, working: session.isWorking))
-        }
-    }
-    private func bannerRow(_ banner: NotchBanner) -> some View {
-        Button { model.openBanner() } label: {
-            HStack(spacing: 10) {
-                if banner.kind == .shell {
-                    Image(systemName: "terminal.fill").font(.subheadline).foregroundStyle(Palette.mint)
-                } else {
-                    AgentLogo(kind: banner.kind, size: 17)
-                }
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(banner.reason.title).font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.white)
-                    Text("\(banner.kind.name) · \(banner.folder)")
-                        .font(.caption).foregroundStyle(Palette.muted).lineLimit(1)
-                }
-                Spacer(minLength: 0)
-                Image(systemName: "arrow.up.right").font(.caption.weight(.semibold))
-                    .foregroundStyle(Palette.muted)
-            }
-            .padding(.horizontal, 22)
-            .frame(height: 48)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .transition(.opacity.combined(with: .move(edge: .top)))
-        .accessibilityLabel(L("\(banner.kind.name) \(banner.reason.message), \(banner.folder). 열기", "\(banner.kind.name) \(banner.reason.message), \(banner.folder). Open"))
-    }
-    /// Inline instead of an alert: modal UI attached to this always-on-top panel can end up hidden.
+
     private func errorBanner(_ text: String) -> some View {
         HStack(alignment: .top, spacing: 8) {
             Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
@@ -247,12 +188,12 @@ struct IslandView: View {
         .padding(10).background(Color.orange.opacity(0.14)).clipShape(.rect(cornerRadius: 9))
         .accessibilityElement(children: .combine)
     }
-    /// Header in the menu bar band, split around the physical notch.
+    /// Header inside the floating panel; no camera-shaped blank strip is needed.
     private var topRow: some View {
         HStack(spacing: 0) {
             HStack(spacing: 8) {
                 AppMark(size: 20)
-                Text("NotchAgent").font(.headline).lineLimit(1).fixedSize()
+                Text("Agents on Island").font(.headline).lineLimit(1).fixedSize()
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             // Nothing is drawn under the camera. Screens without a notch keep only a small gap.
@@ -281,6 +222,13 @@ struct IslandView: View {
         .padding(.top, 6)
     }
     private var preview: some View {
+        Group {
+            if let agent = model.previewAgent {
+                AgentPreview(model: model, kind: agent)
+            } else { dashboardPreview }
+        }
+    }
+    private var dashboardPreview: some View {
         VStack(alignment: .leading, spacing: 13) {
             HStack(alignment: .center) {
                 VStack(alignment: .leading, spacing: 5) {
@@ -575,7 +523,7 @@ struct ClaudeUsageStrip: View {
             } else {
                 HStack(spacing: 10) {
                     Image(systemName: "exclamationmark.circle").foregroundStyle(Palette.muted)
-                    Text(L("Claude 사용량은 NotchAgent에서 연 Claude 세션의 첫 응답 후 표시됩니다.", "Claude usage appears after the first response in a Claude session opened in NotchAgent."))
+                    Text(L("Claude 사용량은 Agents on Island에서 연 Claude 세션의 첫 응답 후 표시됩니다.", "Claude usage appears after the first response in a Claude session opened in Agents on Island."))
                         .font(.caption).foregroundStyle(Palette.muted).lineLimit(compact ? 1 : 2)
                     Spacer()
                     RefreshButton(help: ClaudeUsageService.refreshHelp) { service.reload() }
@@ -633,7 +581,7 @@ struct CombinedUsageStrip: View {
             HStack(spacing: 8) {
                 AgentBadge(kind: .claude, stacked: false)
                 Text(L("첫 응답 후 표시", "After first reply")).font(.caption).foregroundStyle(Palette.muted).lineLimit(1)
-                    .help(L("NotchAgent에서 연 Claude 세션이 첫 응답을 받으면 표시됩니다 (Pro/Max).", "Shown once a Claude session opened in NotchAgent gets its first response (Pro/Max)."))
+                    .help(L("Agents on Island에서 연 Claude 세션이 첫 응답을 받으면 표시됩니다 (Pro/Max).", "Shown once a Claude session opened in Agents on Island gets its first response (Pro/Max)."))
             }
         }
     }
@@ -922,12 +870,12 @@ struct NotchStatusView: View {
             case .lowQuota(let agent, let remaining):
                 ZStack {
                     Circle().stroke(Color.white.opacity(0.15), lineWidth: 2.2)
-                    Circle().trim(from: 0, to: (100 - remaining) / 100).stroke(Palette.low, style: StrokeStyle(lineWidth: 2.2, lineCap: .round))
+                    Circle().trim(from: 0, to: remaining / 100).stroke(Palette.low, style: StrokeStyle(lineWidth: 2.2, lineCap: .round))
                         .rotationEffect(.degrees(-90))
                 }
                 .frame(width: 13, height: 13)
-                .help(L("\(agent.name) 한도 \(Int(100 - remaining))% 사용", "\(agent.name) limit: \(Int(100 - remaining))% used"))
-                .accessibilityLabel(L("\(agent.name) 한도 \(Int(100 - remaining))% 사용", "\(agent.name) limit: \(Int(100 - remaining))% used"))
+                .help(L("\(agent.name) 한도 \(Int(remaining))% 남음", "\(agent.name) limit: \(Int(remaining))% left"))
+                .accessibilityLabel(L("\(agent.name) 한도 \(Int(remaining))% 남음", "\(agent.name) limit: \(Int(remaining))% left"))
             case .sessions:
                 Circle().fill(Palette.muted).frame(width: 6, height: 6).accessibilityLabel(L("대기 중", "Idle"))
             case .empty:
@@ -947,39 +895,39 @@ struct NotchStatusView: View {
     }
 }
 
-/// Idle notch: weekly quota used in the ring, 5-hour quota used as a number.
-/// High consumption turns red, matching the preview and workspace footer.
+/// Idle island: weekly quota left in the ring, 5-hour quota left as a number.
+/// Low remaining quota turns red, matching the preview and workspace footer.
 struct UsageBadge: View {
     let usage: IdleUsage
     let showsNumber: Bool
     private static func color(_ window: UsageWindow, normal: Color) -> Color {
         window.remaining <= NotchStatus.lowQuotaThreshold ? Palette.low : normal
     }
-    private static func used(_ window: UsageWindow) -> String {
-        window.title + L(" \(Int(window.consumed))% 사용", " \(Int(window.consumed))% used")
+    private static func remainingLabel(_ window: UsageWindow) -> String {
+        window.title + L(" \(Int(window.remaining))% 남음", " \(Int(window.remaining))% left")
     }
     static func percent(_ usage: IdleUsage) -> some View {
-        Text("\(Int(usage.session.consumed))%").font(.caption.monospacedDigit().weight(.semibold))
+        Text("\(Int(usage.session.remaining))%").font(.caption.monospacedDigit().weight(.semibold))
             .foregroundStyle(color(usage.session, normal: .white))
-            .contentTransition(.numericText(value: usage.session.consumed))
-            .help(usage.agent.name + " · " + used(usage.session) + " · " + usage.session.resetLabel())
+            .contentTransition(.numericText(value: usage.session.remaining))
+            .help(usage.agent.name + " · " + remainingLabel(usage.session) + " · " + usage.session.resetLabel())
     }
     var body: some View {
         HStack(spacing: 5) {
             ZStack {
                 Circle().stroke(Color.white.opacity(0.12), lineWidth: 2)
-                Circle().trim(from: 0, to: usage.weekly.consumed / 100)
+                Circle().trim(from: 0, to: usage.weekly.remaining / 100)
                     .stroke(Self.color(usage.weekly, normal: Color.white.opacity(0.9)), style: StrokeStyle(lineWidth: 2, lineCap: .round))
                     .rotationEffect(.degrees(-90))
-                    .animation(Motion.snappy, value: usage.weekly.consumed)
+                    .animation(Motion.snappy, value: usage.weekly.remaining)
                 SessionIcon(kind: usage.agent, size: 11)
             }
             .frame(width: 21, height: 21)
-            .help(usage.agent.name + " · " + Self.used(usage.weekly) + " · " + usage.weekly.resetLabel())
+            .help(usage.agent.name + " · " + Self.remainingLabel(usage.weekly) + " · " + usage.weekly.resetLabel())
             if showsNumber { Self.percent(usage) }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(usage.agent.name + ", " + Self.used(usage.session) + ", " + Self.used(usage.weekly))
+        .accessibilityLabel(usage.agent.name + ", " + Self.remainingLabel(usage.session) + ", " + Self.remainingLabel(usage.weekly))
     }
 }
 

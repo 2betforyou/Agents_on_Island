@@ -6,7 +6,7 @@ enum ActivityNotificationText {
         activity.kind.name + " · " + activity.reason.message
     }
     static func body(for activity: RecentActivity, showsDetails: Bool) -> String {
-        guard showsDetails else { return L("자세한 내용은 NotchAgent에서 확인하세요.", "Open NotchAgent for details.") }
+        guard showsDetails else { return L("자세한 내용은 Agents on Island에서 확인하세요.", "Open Agents on Island for details.") }
         return activity.title == activity.folder ? activity.folder : activity.title + " · " + activity.folder
     }
 }
@@ -34,7 +34,7 @@ final class ActivityNotifications: NSObject, UNUserNotificationCenterDelegate {
         return settings.authorizationStatus == .denied ? deniedMessage : nil
     }
     private var deniedMessage: String {
-        L("시스템 설정 → 알림 → NotchAgent에서 알림을 허용하세요.", "Allow notifications in System Settings → Notifications → NotchAgent.")
+        L("시스템 설정 → 알림 → Agents on Island에서 알림을 허용하세요.", "Allow notifications in System Settings → Notifications → Agents on Island.")
     }
     func deliver(_ activity: RecentActivity, notification: Bool, sound: Bool, showsDetails: Bool) {
         guard notification && authorized else {

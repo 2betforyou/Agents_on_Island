@@ -120,8 +120,8 @@ final class ClaudeUsageService {
     }
     func stop() { timer?.invalidate(); timer = nil }
     static var refreshHelp: String {
-        L("Claude 사용량은 직접 조회할 수 없어, NotchAgent에서 연 Claude 세션이 응답할 때마다 계정 전체 기준으로 갱신됩니다. 새로고침은 마지막으로 받은 값을 다시 읽습니다.",
-          "Claude usage cannot be queried directly; it updates, account-wide, whenever a Claude session opened in NotchAgent responds. Refresh re-reads the latest value.")
+        L("Claude 사용량은 직접 조회할 수 없어, Agents on Island에서 연 Claude 세션이 응답할 때마다 계정 전체 기준으로 갱신됩니다. 새로고침은 마지막으로 받은 값을 다시 읽습니다.",
+          "Claude usage cannot be queried directly; it updates, account-wide, whenever a Claude session opened in Agents on Island responds. Refresh re-reads the latest value.")
     }
     func setEnabled(_ value: Bool) {
         enabled = value

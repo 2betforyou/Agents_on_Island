@@ -1,4 +1,10 @@
-# NotchAgent
+# Agents on Island (AoI)
+
+Formerly NotchAgent. Existing settings and sessions carry over. Technical name: `Agents_on_Island`.
+
+Hold **Option (⌥)** to merge collapsed side islands into the center and hide them; the mock center disappears last. Release to restore them in reverse order. This does not hide an open preview or terminal. Agent islands and previews size to their content and expand from their own position.
+
+Agent previews include quota, reset times, today's and 30-day tokens, and a daily chart alongside sessions and recent activity. Tokens come from local `~/.codex/sessions` or `~/.claude/projects` CLI logs, not other devices. Claude cache input is included; Codex cumulative counters are summed as deltas. Missing or unreadable logs do not represent complete usage. Conversation content is neither stored nor transmitted. Billing amounts, cost estimates, credits and exhaustion forecasts are not currently provided.
 
 **English** · [한국어](README.ko.md)
 
@@ -15,7 +21,7 @@ Open your project, start an agent, and collapse the notch to get your screen bac
 You need an **Apple silicon Mac with macOS 14 or later**. Install and sign in to whichever CLI you want to use: Codex (`codex`), Claude Code (`claude`), or Gemini CLI (`gemini`). You can also use the terminal on its own.
 
 1. Download a DMG or ZIP from [Releases](https://github.com/2betforyou/NotchAgent/releases).
-2. Move **NotchAgent.app** into **Applications** and open it.
+2. Move **Agents on Island.app** into **Applications** and open it (the existing v0.1.2 download is named **NotchAgent.app**).
 3. Click the notch or press **Control + Option + Space** (`⌃⌥Space`).
 4. Add a project folder with the folder-plus button, then choose **Terminal**, **Codex**, **Claude**, or **Gemini**.
 
@@ -25,12 +31,14 @@ If macOS blocks an unnotarized build, open it once, then go to **System Settings
 
 If an agent is unavailable, open **Settings → Agents** and check its executable path. NotchAgent doesn't install CLIs or sign you in.
 
-## Three ways to use the notch
+## Three ways to use the island
+
+**Development UI (v0.1.3):** independent agent islands sit beside the camera cutout (Claude left, Codex right). Displays without a notch show a central black capsule at an approximate 2.5:1 ratio estimated from Apple's iPhone 18 Pro product image, not a published hardware measurement. Hover an agent to expand its sessions, activity and quota; hover the mock center to open the full dashboard. Click an agent to open its session. The preview has a solid black top fading into native Liquid Glass on macOS 26+, with a material fallback and a solid background under Reduce Transparency. The terminal remains black. This app-owned overlay can cover other menu-bar items; it is not Apple's system Dynamic Island integration. The published v0.1.2 ZIP is unchanged.
 
 | View | What you can do |
 |---|---|
-| Collapsed | Glance at ongoing work or consumed quota without opening a window |
-| Preview — hover over the notch | Switch projects, send a quick request, check usage, and catch up on recent activity |
+| Collapsed | Glance at ongoing work or remaining quota without opening a window |
+| Preview — hover over the capsule | Switch projects, send a quick request, check usage, and catch up on recent activity |
 | Workspace — click or use the shortcut | Use the terminal, switch session tabs, or visit your project's Home |
 
 ### A quiet notch while you work
@@ -128,7 +136,7 @@ Enable the agents you want in **Settings → Agents**. These are **account-level
 | Claude Code | Updates from limit values reported when a Claude session opened in NotchAgent replies; refresh re-reads the latest value |
 | Gemini CLI | Session launching is supported; account quota display isn't available |
 
-All three sizes show **used quota**, growing from 0% to 100%; Claude comes before Codex. The workspace footer is a single line: **Used**, agent icons, a small usage bar, consumed percentages, and time until reset. The preview uses the same compact display, one row per agent. Click an agent icon for update details; an orange dot indicates an outdated or failed reading.
+All three sizes show **remaining quota**, decreasing from 100% to 0%; Claude comes before Codex. The workspace footer is a single line: **Left**, agent icons, a small quota bar, remaining percentages, and time until reset. The preview uses the same compact display, one row per agent. Click an agent icon for update details; an orange dot indicates an outdated or failed reading.
 
 Update times are kept in agent-icon popovers and Agents settings, not the compact usage rows. Click the icon for the exact update time, failure details, and retry. Codex readings become outdated after ten minutes; Claude readings after an hour, or earlier if a reported limit has reset. Retrying Claude re-reads the last local value rather than fetching a fresh limit.
 

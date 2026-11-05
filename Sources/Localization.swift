@@ -17,6 +17,10 @@ enum AppLanguage: String, CaseIterable, Identifiable {
         case .system: Locale.preferredLanguages.first?.hasPrefix("ko") ?? false
         }
     }
+    var locale: Locale { Locale(identifier: resolvesToKorean ? "ko_KR" : "en_US") }
+    func compactNumber(_ value: Int64) -> String {
+        value.formatted(.number.notation(.compactName).locale(locale))
+    }
     /// Shown in the picker in each language's own name.
     var name: String {
         switch self {
