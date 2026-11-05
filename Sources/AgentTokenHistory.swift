@@ -99,11 +99,17 @@ final class AgentTokenHistoryService {
     private(set) var summaries: [AgentKind: AgentTokenSummary] = [:]
     private var fetched: [AgentKind: Date] = [:]
     private var loading: Set<AgentKind> = []
+    @ObservationIgnored private let scan: @Sendable (AgentKind) -> AgentTokenSummary
+    /// `scan` is replaceable so screenshots and tests never read the real CLI logs.
+    init(scan: @escaping @Sendable (AgentKind) -> AgentTokenSummary = { AgentTokenHistory.scan(kind: $0) }) {
+        self.scan = scan
+    }
     func load(_ kind: AgentKind) async {
         guard kind == .claude || kind == .codex, !loading.contains(kind),
               Date().timeIntervalSince(fetched[kind] ?? .distantPast) > 300 else { return }
         loading.insert(kind)
-        let result = await Task.detached(priority: .utility) { AgentTokenHistory.scan(kind: kind) }.value
+        let scan = self.scan
+        let result = await Task.detached(priority: .utility) { scan(kind) }.value
         summaries[kind] = result
         fetched[kind] = Date()
         loading.remove(kind)

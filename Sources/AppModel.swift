@@ -268,7 +268,7 @@ final class AppModel {
     /// Keep the real camera clear; displays without a notch use only a small inter-island gap.
     var previewAgent: AgentKind?
     var optionConcealed = false
-    let tokenHistory = AgentTokenHistoryService()
+    var tokenHistory = AgentTokenHistoryService()
     var agentPreviewWidth: CGFloat {
         guard let kind = previewAgent else { return 570 }
         let titles = sessions.filter { !$0.ended && $0.kind == kind }.map(\.displayTitle)

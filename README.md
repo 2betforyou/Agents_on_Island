@@ -1,18 +1,12 @@
-# Agents on Island (AoI)
-
-Formerly NotchAgent. Existing settings and sessions carry over. Technical name: `Agents_on_Island`.
-
-Hold **Option (⌥)** to merge collapsed side islands into the center and hide them; the mock center disappears last. Release to restore them in reverse order. This does not hide an open preview or terminal. Agent islands and previews size to their content and expand from their own position.
-
-Agent previews include quota, reset times, today's and 30-day tokens, and a daily chart alongside sessions and recent activity. Tokens come from local `~/.codex/sessions` or `~/.claude/projects` CLI logs, not other devices. Claude cache input is included; Codex cumulative counters are summed as deltas. Missing or unreadable logs do not represent complete usage. Conversation content is neither stored nor transmitted. Billing amounts, cost estimates, credits and exhaustion forecasts are not currently provided.
+# Agents on Island
 
 **English** · [한국어](README.ko.md)
 
-A terminal for your MacBook's notch. Keep Codex, Claude Code, and Gemini CLI close while you work.
+Small islands for your AI coding agents, right in the menu bar. Keep Codex, Claude Code, and Gemini CLI running while you work, and see at a glance which one is busy, which one finished, and how much quota is left.
 
-Open your project, start an agent, and collapse the notch to get your screen back. Your sessions keep running until you end them or quit the app. NotchAgent uses the CLIs you already have installed and signed in.
+Agents on Island (AoI) was previously called **NotchAgent**. Your settings, projects, and sessions carry over. It uses the CLIs you already have installed and signed in.
 
-![NotchAgent preview with usage and recent activity](docs/images/en/hero.png)
+![Hovering the Claude island: its sessions, remaining quota, token history, and recent activity](docs/images/en/hero.png)
 
 *Illustrative app UI with sample data.*
 
@@ -20,84 +14,105 @@ Open your project, start an agent, and collapse the notch to get your screen bac
 
 You need an **Apple silicon Mac with macOS 14 or later**. Install and sign in to whichever CLI you want to use: Codex (`codex`), Claude Code (`claude`), or Gemini CLI (`gemini`). You can also use the terminal on its own.
 
-1. Download a DMG or ZIP from [Releases](https://github.com/2betforyou/NotchAgent/releases).
-2. Move **Agents on Island.app** into **Applications** and open it (the existing v0.1.2 download is named **NotchAgent.app**).
-3. Click the notch or press **Control + Option + Space** (`⌃⌥Space`).
+1. Download the latest ZIP from [Releases](https://github.com/2betforyou/NotchAgent/releases).
+2. Move **Agents on Island.app** into **Applications** and open it.
+3. Press **Control + Option + Space** (`⌃⌥Space`) to open the workspace.
 4. Add a project folder with the folder-plus button, then choose **Terminal**, **Codex**, **Claude**, or **Gemini**.
 
-There is no Dock icon. Use the notch or the menu bar icon to open the app again.
+There is no Dock icon. Use the islands, the shortcut, or the menu bar icon to open the app again.
 
-If macOS blocks an unnotarized build, open it once, then go to **System Settings → Privacy & Security → Open Anyway**. Check the release notes for that build's signing and notarization status.
+Release builds aren't notarized by Apple yet, so macOS blocks the first launch. Open the app once, then go to **System Settings → Privacy & Security** and click **Open Anyway**. You only need to do this once per version.
 
-If an agent is unavailable, open **Settings → Agents** and check its executable path. NotchAgent doesn't install CLIs or sign you in.
+If an agent is unavailable, open **Settings → Agents** and check its executable path. Agents on Island doesn't install CLIs or sign you in.
 
-## Three ways to use the island
+### Updating from NotchAgent
 
-**Development UI (v0.1.3):** independent agent islands sit beside the camera cutout (Claude left, Codex right). Displays without a notch show a central black capsule at an approximate 2.5:1 ratio estimated from Apple's iPhone 18 Pro product image, not a published hardware measurement. Hover an agent to expand its sessions, activity and quota; hover the mock center to open the full dashboard. Click an agent to open its session. The preview has a solid black top fading into native Liquid Glass on macOS 26+, with a material fallback and a solid background under Reduce Transparency. The terminal remains black. This app-owned overlay can cover other menu-bar items; it is not Apple's system Dynamic Island integration. The published v0.1.2 ZIP is unchanged.
+1. Quit NotchAgent from the menu bar icon → **Quit NotchAgent**. Quitting ends open terminal and agent sessions, so finish or pause your work first.
+2. Delete **NotchAgent.app** from Applications and move in **Agents on Island.app**.
+3. Open it. Projects, settings, and restorable sessions come back as before.
+4. If you used **Launch at login**, check that it's still on in **Settings → General**.
 
-| View | What you can do |
+There's no automatic updater yet. Watch the repository's releases to hear about new versions.
+
+## The islands
+
+Each agent gets its own small island in the menu bar: **Claude and Gemini on the left, Codex and Terminal on the right**. On a MacBook with a camera notch, they sit on either side of it. On other displays, a small black capsule stands in for the camera in the center.
+
+| What you do | What happens |
 |---|---|
-| Collapsed | Glance at ongoing work or remaining quota without opening a window |
-| Preview — hover over the capsule | Switch projects, send a quick request, check usage, and catch up on recent activity |
-| Workspace — click or use the shortcut | Use the terminal, switch session tabs, or visit your project's Home |
+| Glance | Each island shows its agent's state: working, a notice, or remaining quota |
+| Hover over an agent's island | It expands in place into that agent's sessions, quota, token history, and recent activity. Neighboring islands slide aside to make room |
+| Click an agent's island | Opens the workspace on that agent's session: one that needs you first, then one that's working, then the latest |
+| Hover over the center capsule (displays without a notch) | Opens the full preview: projects, quick request, usage, and recent activity |
+| Click the center capsule, or press `⌃⌥Space` | Opens the workspace |
+| Hold **Option (⌥)** | Islands gather into the center and hide, so you can reach menu bar items underneath. Release to bring them back |
 
-### A quiet notch while you work
+Islands appear only when they have something to show. With nothing running and usage display off, a single Terminal island remains.
 
-While an agent is working, the notch shows its icon and working dots. After a minute, it shows elapsed time. When no sessions are working, it returns to available usage readings—even if an unseen completion or input request remains.
+### What an island shows
 
-The **number is 5-hour quota used** and the **ring is weekly quota used**. Both grow from 0% to 100%, just like the preview and workspace. If the CLI reports only one window, both use that window. Usage must be enabled in **Settings → Agents**, and a reading must be available.
+![Islands beside the camera: idle quota, working, elapsed time, working count, and a completion notice](docs/images/en/notch-states.png)
 
-In **Settings → Notch → Collapsed notch**, choose the persistent displays:
+- **Working**: the agent's icon and `•••`, then elapsed time after a minute. Optionally, the number of sessions working.
+- **Notice**: when a session finishes or needs input, its island grows briefly to show the event and project. It disappears after about six seconds; find it again in **Recent Activity**.
+- **Idle**: remaining quota. The **number is the 5-hour limit left** and the **ring is the weekly limit left**; each turns red at 20% or less.
 
-| Option | Default |
-|---|---|
-| Usage while idle | On |
-| Ongoing work | On |
-| Number of working sessions | Off |
+Choose these in **Settings → Notch → Collapsed notch**: show usage while idle (on), show ongoing work (on), show working session count (off). Choose **Notch**, **Notification Center**, and **Sound** separately for each event in **Settings → Alerts → Event delivery**. Turning displays off doesn't stop your sessions.
 
-![Collapsed notch: usage while idle, working, elapsed time, working count, and a completion notice](docs/images/en/notch-states.png)
+### Agent previews
 
-Completion and input request notices disappear after about six seconds. Find them again in **Recent Activity**. Choose **Notch**, **Notification Center**, and **Sound** separately for each event in **Settings → Alerts → Event delivery**. Existing delivery choices are preserved; there is no separate notice master switch. Turning off notch displays doesn't stop your sessions.
+Hovering an agent's island shows, for that agent only:
 
-### Projects and sessions
+- Up to three open sessions. Click one to open it.
+- Remaining 5-hour and weekly quota with reset times.
+- **Tokens today**, **tokens over 30 days**, and a daily chart, read from the CLI's local logs on this Mac (see [Usage and tokens](#usage-and-tokens)).
+- Its recent activity.
 
-Projects are always visible in the preview and workspace. Add a folder, switch projects, or drag the folder chips to reorder them. Right-click a project to start a session, reveal it in Finder, or manage it.
+On macOS 26 and later, previews use Liquid Glass that fades from solid black at the top. With **Reduce Transparency** on, they stay solid black. The terminal is always black.
 
-- Keep up to **8 session tabs across all projects**.
-- Tabs use the task title reported by the CLI. Double-click a tab to rename it.
-- Drag tabs to reorder them. The **Home** tab stays at the far left of each project.
-- Create a **git worktree** from a repository's context menu to work on a separate branch and checkout. Removal is blocked when it would discard uncommitted changes.
-- In the preview, select an agent and send a **quick request**. It opens a session in the selected project. If launch fails, your draft stays in the input.
+The islands are drawn by this app over the menu bar. They aren't Apple's Dynamic Island, and they can cover other menu bar items; hold Option to reach them.
+
+## Workspace
 
 ![Project workspace with terminal and session tabs](docs/images/en/workspace.png)
 
 *Illustrative app UI with sample data.*
 
-### Repository status on Home
+### Projects and sessions
+
+Projects are always visible in the workspace. Add a folder, switch projects, or drag the folder chips to reorder them. Right-click a project to start a session, reveal it in Finder, or manage it.
+
+- Keep up to **8 session tabs across all projects**.
+- Tabs use the task title reported by the CLI. Double-click a tab to rename it.
+- Drag tabs to reorder them. The **Home** tab stays at the far left of each project.
+- Create a **git worktree** from a repository's context menu to work on a separate branch and checkout. Removal is blocked when it would discard uncommitted changes.
+- In the full preview, select an agent and send a **quick request**. It opens a session in the selected project. If launch fails, your draft stays in the input.
+
+### Project Home
 
 ![Project Home with the activity heatmap and repository status](docs/images/en/home.png)
 
 *Illustrative app UI with sample data.*
 
-Between the activity heatmap and launch cards, Git projects show the current branch and changed-file count. Click the count to inspect file names. GitHub projects also have a repository link and **Connect PR & checks**. This optional connection uses the installed GitHub CLI (`gh`) and its existing sign-in; you can disable it in Settings → Agents. It reads the branch's open PR, review/draft state, and checks. Without a PR, it can show the latest workflow run for the local HEAD commit. Failures remain distinct from “no PR.” Data refreshes every minute while Home is open or with the row's refresh button. Only github.com remotes on `origin` are supported; no repository writes or sign-in flow are performed. Non-Git folders hide the row. Home keeps its fixed window size and existing element sizes; the launch cards sit below the repository row.
+Home shows a **12-week heatmap of completed agent replies in that project**. It counts replies, not open sessions or tokens. Use **Import past conversations** on Home or in **Settings → Agents** to add estimates from local Codex and Claude history. Importing again doesn't add the same history twice. Only daily counts and project paths are saved, for up to a year.
 
-The repository row also shows **local disk usage**, including `.git`, dependencies, and build output. External symlink targets are not followed. Size is cached for five minutes; click it for details or recalculate manually. A dash means it is still calculating or unavailable, not zero bytes.
+Git projects also show the current branch, changed files (click to see names), and local disk usage including `.git`, dependencies, and build output. GitHub projects add a repository link and optional **PR & checks**, read with the installed GitHub CLI (`gh`) and its existing sign-in. It only reads: no pushes, PRs, merges, or sign-in. Turn it off in **Settings → Agents**.
 
 ### Temporary chats
 
-In the preview's **Start here** input, turn on **Temp** before submitting. The agent starts in its own temporary folder, without using or registering your selected project. A **Temporary chats** chip lets you switch back while the app stays open; launch cards there also create temporary sessions.
+In the preview's **Start here** input, turn on **Temp** before submitting. The agent starts in its own temporary folder (`NotchAgent-Chats` in the macOS temporary directory), outside your projects. These sessions are left out of session restoration, saved recent activity, and project activity.
 
-NotchAgent excludes these sessions from session restoration, saved recent activity, and project activity counts. This is **not incognito mode or a sandbox**: the CLI can keep its own conversation history and has its normal file permissions. Generated files remain in the macOS temporary directory (`NotchAgent-Chats`) until removed by you or macOS. Save anything important elsewhere before quitting.
+This is **not incognito mode or a sandbox**: the CLI keeps its own history and normal file permissions, and generated files stay until you or macOS remove them.
 
 ### Files, terminal, and keyboard
 
-Drop a file or image **inside the terminal** to insert its path. Review it and press Return yourself. Drop a folder **on the notch or project area** to add and switch projects; dropping it inside the terminal inserts its path instead.
+Drop a file or image **inside the terminal** to insert its path; review it and press Return yourself. Drop a folder **on an island or the project area** to add it as a project.
 
-The terminal supports color output, Korean input composition, 5,000 lines of scrollback, search, and clickable links. The default theme uses a pure black background. CLI color output is preserved even when the app's launcher disables color in its own environment.
+The terminal supports color output, Korean input composition, 5,000 lines of scrollback, search, and clickable links. Codex runs in inline mode (`--no-alt-screen`) so earlier output stays scrollable.
 
 | Action | Shortcut or control |
 |---|---|
-| Open / collapse | `⌃⌥Space`, notch click, or menu bar icon |
+| Open / collapse | `⌃⌥Space`, an island, or the menu bar icon |
 | Project Home | `⌘1` |
 | Session tabs | `⌘2`–`⌘9` |
 | Next / previous tab | `⇧⌘]` / `⇧⌘[` |
@@ -108,87 +123,73 @@ The terminal supports color output, Korean input composition, 5,000 lines of scr
 | Rename a tab | Double-click, or right-click → Rename |
 | End a session | Tab's `×`, or `exit` in the shell |
 
-`Esc`, `⌃C`, and `⌘W` go to the CLI. Use the global shortcut to collapse the app. You can change the shortcut, hover behavior, display preference, and workspace size in Settings. Sizes are Small, Default, and Large, constrained to your screen.
+`Esc`, `⌃C`, and `⌘W` go to the CLI. Use the global shortcut to collapse.
 
-### Catch up without watching the terminal
+### Catch up without watching
 
-**Recent Activity** collects completions, requests for input, and session endings. Click to return to an open session. When a Codex or Claude session has closed, **Resume** opens its saved conversation in the original project, including after an app relaunch. If that conversation is already open, its tab is selected instead. Older events without a project path and conversation ID can't be resumed; the app explains why instead of opening a different conversation.
+**Recent Activity** collects completions, requests for input, and session endings. Click one to return to its session. When a Codex or Claude session has closed, **Resume** reopens its saved conversation in the original project, including after a relaunch.
 
-Up to 50 events are kept locally for 24 hours. In **Settings → Alerts**, you can disable retention, choose macOS notification and sound events, and opt into showing task titles and folders in system notifications. Notification Center and sounds are off by default.
+Up to 50 events are kept locally for 24 hours. Notification Center and sounds are off by default; turn them on per event in **Settings → Alerts**. Task titles and folders are hidden from macOS notifications unless you choose to show them.
 
-Claude hooks and Codex completion notifications provide event signals. Other activity, including working status where start signals aren't available, is inferred from terminal output and can be approximate.
+Claude hooks and Codex completion notifications give exact events. Other activity is inferred from terminal output and can be approximate.
 
-### Your project's activity
+## Usage and tokens
 
-Home shows a **12-week heatmap of completed agent replies in that project**. It counts replies, not open sessions or tokens. Home's greeting changes with the time of day and date.
+Enable the agents you want in **Settings → Agents**. Quota shows **what's left**, from 100% down to 0%, everywhere in the app. These are **account-level limits**, not just this project.
 
-Use **Import past conversations** on Home or in **Settings → Agents** to add estimates from local Codex and Claude history for the selected project. Importing again doesn't add the same history twice. Past Gemini history isn't imported.
-
-Only daily counts and project paths are saved, for up to a year. Turning project activity recording off deletes the saved counts. Importing activity doesn't reopen conversations or copy their text into NotchAgent.
-
-## Usage readings
-
-Enable the agents you want in **Settings → Agents**. These are **account-level limits**, not the tokens spent in the selected project.
-
-| Agent | How readings update |
+| Agent | How quota updates |
 |---|---|
-| Codex | Queries the local CLI's account limits every five minutes; you can refresh manually |
-| Claude Code | Updates from limit values reported when a Claude session opened in NotchAgent replies; refresh re-reads the latest value |
-| Gemini CLI | Session launching is supported; account quota display isn't available |
+| Codex | Read from the local CLI every five minutes; you can refresh manually |
+| Claude Code | Updated from the limits Claude Code reports when a session opened in Agents on Island replies; refresh re-reads the last value |
+| Gemini CLI | Sessions are supported; quota isn't available |
 
-All three sizes show **remaining quota**, decreasing from 100% to 0%; Claude comes before Codex. The workspace footer is a single line: **Left**, agent icons, a small quota bar, remaining percentages, and time until reset. The preview uses the same compact display, one row per agent. Click an agent icon for update details; an orange dot indicates an outdated or failed reading.
+A missing reading isn't zero quota. An orange dot means a reading is outdated or failed; click the agent icon for details and retry.
 
-Update times are kept in agent-icon popovers and Agents settings, not the compact usage rows. Click the icon for the exact update time, failure details, and retry. Codex readings become outdated after ten minutes; Claude readings after an hour, or earlier if a reported limit has reset. Retrying Claude re-reads the last local value rather than fetching a fresh limit.
-
-A missing reading isn't zero remaining quota. Claude's value may be old until the next reply. NotchAgent doesn't have a separate account or API-key entry screen; each CLI manages its own authentication.
+**Token counts** in agent previews come from the CLI's local logs on this Mac (`~/.claude/projects` for Claude, `~/.codex/sessions` for Codex). They don't include other devices, and unreadable or missing logs mean the totals may be partial. Claude cache input is included; Codex cumulative counters are summed as daily differences. Conversation text is never stored or sent. Billing amounts, cost estimates, and credits aren't shown.
 
 ## Collapse, quit, and come back
 
 **Collapsing keeps work running. Quitting ends open terminal and agent processes.**
 
-To quit, use **Settings → About → Quit App** or **menu bar icon → Quit NotchAgent**. The app asks before closing running agents or busy shells.
-
-With **Settings → Agents → Restore sessions on relaunch** enabled, tabs return and start when opened. Codex and Claude use a saved conversation ID when available; without one, restoration may fall back to the project's latest conversation. Shell tabs start a new shell. Unsubmitted input, terminal scrollback, and running processes aren't restored.
+Quit from **Settings → About → Quit App** or the menu bar icon. The app asks before closing running agents or busy shells. With **Settings → Agents → Restore sessions on relaunch** on, tabs return when you reopen the app, and Codex and Claude resume their saved conversations. Unsubmitted input, scrollback, and running processes aren't restored.
 
 ## Settings at a glance
 
-Settings open inside the expanded notch, using the same black background and accent as your workspace. Use **Back to workspace** to return to your selected tab. Sessions keep running while you change settings; collapsing and reopening keeps settings open.
+Settings open inside the workspace. Sessions keep running while you change them.
 
 | Page | Controls |
 |---|---|
 | General | Language, global shortcut, launch at login |
-| Notch | Display, hover, auto-collapse, workspace size, collapsed displays |
-| Alerts | Event-by-event notch, Notification Center, and sound delivery; notification privacy; recent activity retention |
+| Notch | Display, hover, auto-collapse, workspace size, what islands show |
+| Alerts | Per-event notch, Notification Center, and sound delivery; notification privacy; recent activity retention |
 | Appearance | Accent, terminal theme, font, font size |
-| Agents | CLI paths, session restoration, usage, project activity and history import |
+| Agents | CLI paths, session restoration, usage, project activity, GitHub status, history import |
 | About | Version and Quit App |
 
 ## Privacy
 
-NotchAgent has no analytics service or telemetry. It doesn't save terminal transcripts. Settings, project paths, session restore metadata, optional recent activity, and project reply counts stay on your Mac.
+Agents on Island has no analytics service or telemetry and doesn't save terminal transcripts. Settings, project paths, session restore data, optional recent activity, and project reply counts stay on your Mac. Reading local CLI logs for token counts and history import happens only on this Mac; conversation text isn't kept.
 
-Running CLIs can read files and use the network with your user permissions and their own settings. Their conversation histories remain managed by those CLIs. Pasted image drops without an existing file path are saved in a temporary folder so the CLI can access them.
-
-NotchAgent doesn't request Accessibility or Screen Recording permission. macOS notification permission is requested only if you enable Notification Center. See [Privacy details](PRIVACY.md#english) and [third-party notices](THIRD-PARTY-NOTICES.md).
+Running CLIs can read files and use the network with your user permissions and their own settings. The app doesn't request Accessibility or Screen Recording permission, and asks for notification permission only if you enable Notification Center. See [Privacy details](PRIVACY.md#english) and [third-party notices](THIRD-PARTY-NOTICES.md).
 
 ## Help
 
 | Problem | What to check |
 |---|---|
-| No Dock icon | Use the notch or menu bar icon; this is expected |
-| Agent button unavailable | Install/sign in to its CLI and check Settings → Agents → CLI executables |
-| Usage not showing | Enable that agent's usage in Settings → Agents; Claude needs a reply from a session opened in NotchAgent |
-| Notch notices not showing | Enable Notch for that event in Settings → Alerts → Event delivery |
-| Not attached to the camera notch | Enable the built-in display and select Built-in notch display first |
-| Another notch app overlaps | Temporarily quit the other notch app |
-| Shortcut conflict | Open from the notch or menu bar and change the shortcut in Settings |
+| No Dock icon | Expected. Use an island, `⌃⌥Space`, or the menu bar icon |
+| Islands cover menu bar items | Hold Option (⌥) to hide them |
+| Agent button unavailable | Install and sign in to its CLI, then check Settings → Agents |
+| Usage not showing | Enable it in Settings → Agents; Claude needs a reply from a session opened in Agents on Island |
+| Notices not showing | Enable Notch for that event in Settings → Alerts → Event delivery |
+| Another notch or menu bar app overlaps | Quit the other app for a moment |
+| Shortcut conflict | Open from an island or the menu bar and change the shortcut in Settings |
 
-Report bugs in [GitHub Issues](https://github.com/2betforyou/NotchAgent/issues), including macOS/app/CLI versions and steps to reproduce. Other inquiries: june295921@gmail.com.
+Report bugs in [GitHub Issues](https://github.com/2betforyou/NotchAgent/issues) with your macOS, app, and CLI versions and steps to reproduce. Other inquiries: june295921@gmail.com.
 
 <details>
 <summary>Build, test, and package from source</summary>
 
-Use a full Xcode installation with macOS development tools. Dependencies are vendored.
+Use a full Xcode installation. Dependencies are vendored.
 
 ```sh
 git clone https://github.com/2betforyou/NotchAgent.git
@@ -198,9 +199,9 @@ bash Scripts/test.sh
 bash Scripts/package.sh
 ```
 
-You can also open `NotchAgent.xcodeproj`, choose **NotchAgent → My Mac**, and Run. If Xcode requests a license agreement or first-launch setup, complete that in Xcode first.
+You can also open `NotchAgent.xcodeproj`, choose **NotchAgent → My Mac**, and Run. The Xcode target and bundle identifier keep the old name so existing settings carry over; packaging names the app **Agents on Island.app** and the archive `Agents_on_Island-<version>-macOS.zip`.
 
-Build products use `/private/tmp/NotchAgent-build-<uid>` by default; override with `NOTCHAGENT_BUILD_DIR`. Packaging creates a versioned ZIP and SHA-256 checksum in `Dist/` without replacing a running app. See the [v0.1.2 upload guide](docs/releases/v0.1.2-upload.md) for release preparation, signing, and notarization.
+Build products use `/private/tmp/NotchAgent-build-<uid>` by default; override with `NOTCHAGENT_BUILD_DIR`. See [docs/releases](docs/releases) for release preparation, signing, and notarization.
 
 ```text
 Sources/    App and terminal integration
@@ -210,7 +211,7 @@ Resources/  App metadata, icons, and licenses
 Vendor/     Bundled SwiftTerm
 ```
 
-The terminal uses [SwiftTerm](https://github.com/migueldeicaza/SwiftTerm). Codex launches in inline mode (`--no-alt-screen`) for normal scrollback. To collect app error logs:
+The terminal uses [SwiftTerm](https://github.com/migueldeicaza/SwiftTerm). To collect error logs:
 
 ```sh
 log show --last 1h --info --predicate 'subsystem == "app.notchagent.desktop"'
@@ -222,4 +223,4 @@ Review logs before sharing them.
 
 ## License
 
-NotchAgent's license hasn't been decided yet. Bundled dependencies have their own licenses; see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md). Agent names identify external programs and don't imply affiliation or endorsement.
+The license hasn't been decided yet. Bundled dependencies have their own licenses; see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md). Agent names and logos identify external programs and don't imply affiliation or endorsement.

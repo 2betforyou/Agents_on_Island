@@ -56,11 +56,13 @@ final class ReadmeImagesTests: XCTestCase {
         model.claudeUsage.reload()
         model.workspaces = folders.map { SavedWorkspace(path: $0) }
         model.workspacePath = folders[0]
-        model.notchHeight = 32
+        model.notchHeight = IslandMetrics.compactHeight
         model.compactWidth = 285 // 185 pt camera housing + 100
         model.hasPhysicalNotch = true
         model.physicalNotchWidth = 185
         model.panelWidth = 940; model.panelHeight = 600
+        // Sample token history: the real ~/.claude and ~/.codex logs are never read for screenshots.
+        model.tokenHistory = AgentTokenHistoryService(scan: { kind in Self.sampleTokens(kind) })
         return model
     }
     /// A tab whose program prints `text` and waits, so the terminal has real content to draw.
@@ -127,6 +129,39 @@ final class ReadmeImagesTests: XCTestCase {
         tinted.draw(in: NSRect(x: width - 118, y: top - 25, width: 18, height: 18))
     }
 
+    /// The camera housing, drawn over everything like the real hardware.
+    private func notch(width canvasWidth: CGFloat, top: CGFloat) {
+        let rect = NSRect(x: (canvasWidth - 185) / 2, y: top - 32, width: 185, height: 32)
+        let path = NSBezierPath()
+        path.move(to: NSPoint(x: rect.minX, y: rect.maxY))
+        path.line(to: NSPoint(x: rect.minX, y: rect.minY + 9))
+        path.curve(to: NSPoint(x: rect.minX + 9, y: rect.minY), controlPoint1: NSPoint(x: rect.minX, y: rect.minY + 4), controlPoint2: NSPoint(x: rect.minX + 4, y: rect.minY))
+        path.line(to: NSPoint(x: rect.maxX - 9, y: rect.minY))
+        path.curve(to: NSPoint(x: rect.maxX, y: rect.minY + 9), controlPoint1: NSPoint(x: rect.maxX - 4, y: rect.minY), controlPoint2: NSPoint(x: rect.maxX, y: rect.minY + 4))
+        path.line(to: NSPoint(x: rect.maxX, y: rect.maxY))
+        path.close()
+        NSColor.black.setFill(); path.fill()
+    }
+    /// The island view keeps a shadow margin above its surface; the app centers the 28 pt
+    /// islands in the 32 pt menu bar, so lift the render by the margin minus that 2 pt gap.
+    private static let islandLift = IslandMetrics.shadowInset - (32 - IslandMetrics.compactHeight) / 2
+    private func drawIsland(_ image: NSImage, width canvasWidth: CGFloat, top: CGFloat) {
+        image.draw(in: NSRect(x: (canvasWidth - image.size.width) / 2, y: top - image.size.height + Self.islandLift,
+                              width: image.size.width, height: image.size.height))
+    }
+    nonisolated private static func sampleTokens(_ kind: AgentKind) -> AgentTokenSummary {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let days = (0..<30).map { index -> AgentTokenDay in
+            let date = calendar.date(byAdding: .day, value: index - 29, to: today)!
+            let weekend = [1, 7].contains(calendar.component(.weekday, from: date))
+            let base: Int64 = kind == .claude ? 2_400_000 : 1_300_000
+            let wave = Int64((index * 7919) % 11) * (kind == .claude ? 260_000 : 150_000)
+            return AgentTokenDay(date: date, tokens: weekend ? base / 5 + wave / 4 : base + wave)
+        }
+        return AgentTokenSummary(days: days, filesRead: 24, skippedFiles: 0, meteredRecords: 900)
+    }
+
     // MARK: Images
 
     func testRenderReadmeImages() throws {
@@ -141,25 +176,30 @@ final class ReadmeImagesTests: XCTestCase {
         }
     }
 
-    /// Menu bar with the preview open beneath the notch.
+    /// Hovering the Claude island: its own sessions, quota, and tokens; Codex slides aside.
     private func heroImage() throws {
         let model = makeModel()
         let tab = try session(.claude, folder: folders[0], title: L("로그인 폼 검증", "Login form validation"))
-        tab.start()
+        let second = try session(.claude, folder: folders[1], title: L("불안정한 테스트 고치기", "Fix the flaky test"))
         let other = try session(.codex, folder: folders[1], title: L("빌드 오류 수정", "Fix build error"))
-        other.start()
-        model.sessions = [tab, other]
+        [tab, second, other].forEach { $0.start() }
+        for x in stride(from: 150.0, through: 0, by: -1.5) { tab.recordOutput(at: Date().addingTimeInterval(-x)) }
+        _ = tab.tick(now: Date(), visible: false)
+        model.sessions = [tab, second, other]
         model.selectedID = tab.id
-        model.recordActivity(.finished, for: other, now: Date().addingTimeInterval(-180))
+        model.recordActivity(.finished, for: second, now: Date().addingTimeInterval(-600))
         model.recordActivity(.bell, for: tab, now: Date().addingTimeInterval(-40))
+        model.previewAgent = .claude
         model.phase = .preview
-        let island = try render(IslandView(model: model), size: CGSize(width: model.panelWidth + 32, height: model.hostHeight + 32), settle: 1.2)
-        let size = CGSize(width: 1512, height: model.previewHeight + 40) // the view measured itself while rendering
+        let hostSize = CGSize(width: model.panelWidth + 32, height: model.hostHeight + 32)
+        _ = try render(IslandView(model: model), size: hostSize, settle: 1.5) // measures the preview and loads tokens
+        let island = try render(IslandView(model: model), size: CGSize(width: model.panelWidth + 32, height: model.hostHeight + 32), settle: 1.0)
+        let size = CGSize(width: 1512, height: model.previewHeight + 36)
         let image = canvas(size) {
             wallpaper(NSRect(origin: .zero, size: size))
             menuBar(width: size.width, top: size.height)
-            island.draw(in: NSRect(x: (size.width - island.size.width) / 2, y: size.height - island.size.height,
-                                   width: island.size.width, height: island.size.height))
+            drawIsland(island, width: size.width, top: size.height)
+            notch(width: size.width, top: size.height)
         }
         try save(image, "hero.png")
     }
@@ -174,7 +214,7 @@ final class ReadmeImagesTests: XCTestCase {
             // IslandView has a fixed, top-aligned frame; render it whole and keep the top strip.
             let full = try render(IslandView(model: model), size: CGSize(width: model.panelWidth + 32, height: model.hostHeight + 32))
             let strip = NSImage(size: CGSize(width: full.size.width, height: height), flipped: false) { rect in
-                full.draw(in: rect, from: NSRect(x: 0, y: full.size.height - height, width: full.size.width, height: height), operation: .copy, fraction: 1)
+                full.draw(in: rect, from: NSRect(x: 0, y: full.size.height - Self.islandLift - height, width: full.size.width, height: height), operation: .copy, fraction: 1)
                 return true
             }
             rows.append((label, note, strip))
@@ -185,7 +225,7 @@ final class ReadmeImagesTests: XCTestCase {
             _ = s.tick(now: Date(), visible: false)
             return s
         }
-        try closed(L("대기", "Idle"), L("숫자: 5시간 사용률 · 링: 주간 사용률", "Number: 5-hour quota used · ring: weekly quota used")) { _ in }
+        try closed(L("대기", "Idle"), L("숫자: 5시간 한도 남음 · 링: 주간 한도 남음", "Number: 5-hour quota left · ring: weekly quota left")) { _ in }
         try closed(L("작업 시작", "Working"), L("첫 1분은 •••", "••• for the first minute")) { m in
             m.sessions = [try working(.claude, for: 6)]
         }
@@ -194,9 +234,9 @@ final class ReadmeImagesTests: XCTestCase {
         }
         try closed(L("여러 세션 작업 중", "Several working"), L("선택: 작업 중인 세션 수", "Optional: number of working sessions")) { m in
             m.notchShowsWorkCount = true
-            m.sessions = [try working(.claude, for: 150), try working(.codex, for: 40)]
+            m.sessions = [try working(.claude, for: 150), try working(.claude, for: 40)]
         }
-        try closed(L("완료 알림", "Completion notice"), L("약 6초 뒤 사라지고 최근 활동에 남음", "Fades after about 6 seconds; kept in Recent Activity"), height: 96) { m in
+        try closed(L("완료 알림", "Completion notice"), L("약 6초 뒤 사라지고 최근 활동에 남음", "Fades after about 6 seconds; kept in Recent Activity"), height: 68) { m in
             let s = try session(.codex, folder: folders[0], title: L("빌드 오류 수정", "Fix build error")); s.start()
             m.sessions = [s]
             m.banner = NotchBanner(sessionID: s.id, kind: .codex, reason: .finished, folder: "my-app", shownAt: Date())
@@ -211,6 +251,7 @@ final class ReadmeImagesTests: XCTestCase {
                 NSColor(white: 0.08, alpha: 0.55).setFill()
                 NSRect(x: 0, y: top - 32, width: width, height: 32).fill()
                 row.2.draw(in: NSRect(x: (width - row.2.size.width) / 2, y: top - row.2.size.height, width: row.2.size.width, height: row.2.size.height))
+                notch(width: width, top: top)
                 (row.0 as NSString).draw(at: NSPoint(x: 24, y: top - 24), withAttributes: [.font: NSFont.systemFont(ofSize: 14, weight: .semibold), .foregroundColor: NSColor.white])
                 (row.1 as NSString).draw(at: NSPoint(x: 24, y: top - 50), withAttributes: [.font: NSFont.systemFont(ofSize: 11), .foregroundColor: NSColor(white: 1, alpha: 0.7)])
                 top -= heights[index]
@@ -240,11 +281,12 @@ final class ReadmeImagesTests: XCTestCase {
         model.selectedID = main.id
         model.phase = .terminal
         let image = try render(IslandView(model: model), size: CGSize(width: model.panelWidth + 32, height: model.hostHeight + 32), settle: 2.0)
-        let size = CGSize(width: 1512, height: image.size.height + 20)
+        let size = CGSize(width: 1512, height: image.size.height - Self.islandLift + 4)
         let framed = canvas(size) {
             wallpaper(NSRect(origin: .zero, size: size))
             menuBar(width: size.width, top: size.height)
-            image.draw(in: NSRect(x: (size.width - image.size.width) / 2, y: size.height - image.size.height, width: image.size.width, height: image.size.height))
+            drawIsland(image, width: size.width, top: size.height)
+            notch(width: size.width, top: size.height)
         }
         try save(framed, "workspace.png")
     }
@@ -281,11 +323,12 @@ final class ReadmeImagesTests: XCTestCase {
         model.selectHome()
         model.phase = .terminal
         let image = try render(IslandView(model: model), size: CGSize(width: model.panelWidth + 32, height: model.hostHeight + 32), settle: 1.5)
-        let size = CGSize(width: 1512, height: image.size.height + 20)
+        let size = CGSize(width: 1512, height: image.size.height - Self.islandLift + 4)
         let framed = canvas(size) {
             wallpaper(NSRect(origin: .zero, size: size))
             menuBar(width: size.width, top: size.height)
-            image.draw(in: NSRect(x: (size.width - image.size.width) / 2, y: size.height - image.size.height, width: image.size.width, height: image.size.height))
+            drawIsland(image, width: size.width, top: size.height)
+            notch(width: size.width, top: size.height)
         }
         try save(framed, "home.png")
     }
