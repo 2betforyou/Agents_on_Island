@@ -26,7 +26,7 @@ struct AgentIslandsView: View {
                     .accessibilityLabel(L("작업 화면 열기", "Open workspace"))
                     .allowsHitTesting(!model.optionConcealed)
                     .opacity(model.optionConcealed ? 0 : 1)
-                    .animation(reduceMotion ? nil : .easeInOut(duration: 0.14).delay(model.optionConcealed ? 0.36 : 0), value: model.optionConcealed)
+                    .animation(reduceMotion ? nil : Motion.timed(.easeInOut(duration: 0.14).delay(model.optionConcealed ? 0.36 : 0)), value: model.optionConcealed)
             }
             ForEach(model.closedIslandKinds) { kind in
                 let frame = frames.first { $0.kind == kind }!.frame
@@ -34,12 +34,12 @@ struct AgentIslandsView: View {
                 AgentIslandPill(model: model, kind: kind)
                     .position(x: model.optionConcealed ? bounds.midX : frame.midX, y: bounds.height - frame.midY)
                     .motion(Motion.island, value: frame, reduce: reduceMotion)
-                    .animation(reduceMotion ? nil : .spring(response: 0.34, dampingFraction: 0.9).delay(model.optionConcealed ? 0 : 0.12), value: model.optionConcealed)
-                    .animation(reduceMotion ? nil : .easeOut(duration: 0.08).delay(model.optionConcealed ? 0.28 : 0.1)) { content in
+                    .animation(reduceMotion ? nil : Motion.timed(.spring(response: 0.34, dampingFraction: 0.9).delay(model.optionConcealed ? 0 : 0.12)), value: model.optionConcealed)
+                    .animation(reduceMotion ? nil : Motion.timed(.easeOut(duration: 0.08).delay(model.optionConcealed ? 0.28 : 0.1))) { content in
                         content.opacity(model.optionConcealed ? 0 : 1)
                     }
                     .opacity(expanded ? 0 : 1)
-                    .animation(reduceMotion ? nil : .easeOut(duration: 0.1), value: expanded)
+                    .animation(reduceMotion ? nil : Motion.timed(.easeOut(duration: 0.1)), value: expanded)
                     .allowsHitTesting(!expanded)
             }
         }.frame(width: bounds.width, height: bounds.height)

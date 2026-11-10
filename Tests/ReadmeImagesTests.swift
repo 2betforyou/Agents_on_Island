@@ -153,6 +153,121 @@ final class ReadmeImagesTests: XCTestCase {
 
     // MARK: Images
 
+    /// Captures the production SwiftUI views with fixture data in a test window.
+    func testRenderDemos() throws {
+        for name in ["agent-hover", "dashboard", "workspace", "completion", "option-hide", "settings"] {
+            defaults.removePersistentDomain(forName: suite)
+            try autoreleasepool { try renderDemo(name) }
+        }
+    }
+
+    private func renderDemo(_ name: String) throws {
+        let model = makeModel()
+        let tab = try session(.claude, folder: folders[0], title: "Login form validation",
+                              printing: "Checking LoginForm…\\r\\n12 tests passed.\\r\\n")
+        model.sessions = [tab]
+        model.recordActivity(.finished, for: tab, now: Date().addingTimeInterval(-120))
+        model.previewAgent = name == "agent-hover" ? .claude : nil
+        let hostSize = CGSize(width: model.panelWidth + 32, height: model.hostHeight + 32)
+        let host = NSHostingView(rootView: IslandView(model: model))
+        let window = NSWindow(contentRect: NSRect(origin: .zero, size: hostSize),
+                              styleMask: [.borderless], backing: .buffered, defer: false)
+        window.contentView = host
+        window.backgroundColor = .clear
+        let size: CGSize
+        switch name {
+        case "workspace", "settings": size = CGSize(width: 1020, height: 624)
+        case "option-hide", "completion": size = CGSize(width: 790, height: 135)
+        default: size = CGSize(width: 790, height: 550)
+        }
+        let captureBounds = host.bounds
+        let fps = 120
+        let sampleInterval = Motion.renderTimeScale / Double(fps)
+        var frames: [NSBitmapImageRep] = []
+        func capture() throws -> NSBitmapImageRep {
+            let rep = try XCTUnwrap(host.bitmapImageRepForCachingDisplay(in: captureBounds))
+            host.cacheDisplay(in: captureBounds, to: rep)
+            return rep
+        }
+        func hold(_ seconds: Double) throws {
+            let frame = try capture()
+            frames += Array(repeating: frame, count: Int(seconds * Double(fps)))
+        }
+        func motion(_ change: () -> Void) throws {
+            withAnimation(Motion.island) { change() }
+            let start = ProcessInfo.processInfo.systemUptime
+            let count = Int(0.65 * Double(fps))
+            var index = 0
+            while index < count {
+                let elapsed = ProcessInfo.processInfo.systemUptime - start
+                let delay = Double(index + 1) * sampleInterval - elapsed
+                if delay > 0 { RunLoop.main.run(until: Date().addingTimeInterval(delay)) }
+                let frame = try capture()
+                let capturedAt = ProcessInfo.processInfo.systemUptime - start
+                let next = min(count, max(index + 1, Int(capturedAt / sampleInterval)))
+                frames += Array(repeating: frame, count: next - index)
+                index = next
+            }
+        }
+        RunLoop.main.run(until: Date().addingTimeInterval(0.4))
+        if name == "completion" {
+            tab.start()
+            tab.recordOutput(at: Date().addingTimeInterval(-5))
+            tab.recordOutput(at: Date())
+            _ = tab.tick(now: Date(), visible: false)
+            RunLoop.main.run(until: Date().addingTimeInterval(0.2))
+        }
+        try hold(0.55)
+        try motion {
+            switch name {
+            case "option-hide": model.optionConcealed = true
+            case "completion":
+                _ = tab.tick(now: Date().addingTimeInterval(5), visible: false)
+                model.banner = NotchBanner(sessionID: tab.id, kind: .claude, reason: .finished, folder: "my-app", shownAt: Date())
+            case "workspace": model.phase = .terminal
+            case "settings":
+                model.showsInlineSettings = true
+                model.phase = .terminal
+            default: model.phase = .preview
+            }
+        }
+        RunLoop.main.run(until: Date().addingTimeInterval(0.25))
+        try hold(2)
+        if name == "workspace" {
+            try motion { model.select(tab) }
+            RunLoop.main.run(until: Date().addingTimeInterval(0.35))
+            try hold(1.4)
+        }
+        try motion {
+            model.banner = nil
+            model.optionConcealed = false
+            model.phase = .closed
+        }
+        try hold(0.35)
+
+        let folder = output.appendingPathComponent(name)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        var encoded: [ObjectIdentifier: URL] = [:]
+        for (index, rep) in frames.enumerated() {
+            let destination = folder.appendingPathComponent(String(format: "%03d.png", index))
+            let key = ObjectIdentifier(rep)
+            if let existing = encoded[key] {
+                try FileManager.default.linkItem(at: existing, to: destination)
+                continue
+            }
+            let island = NSImage(size: captureBounds.size)
+            island.addRepresentation(rep)
+            let image = canvas(size) {
+                wallpaper(NSRect(origin: .zero, size: size))
+                menuBar(width: size.width, top: size.height)
+                drawIsland(island, width: size.width, top: size.height)
+            }
+            let bitmap = try XCTUnwrap(NSBitmapImageRep(data: try XCTUnwrap(image.tiffRepresentation)))
+            try XCTUnwrap(bitmap.representation(using: .png, properties: [:])).write(to: destination)
+            encoded[key] = destination
+        }
+    }
+
     func testRenderReadmeImages() throws {
         for language in [AppLanguage.english, .korean] {
             self.language = language

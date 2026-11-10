@@ -6,9 +6,22 @@ Small islands for your AI coding agents, right in the menu bar. Keep Codex, Clau
 
 Agents on Island (AoI) was previously called **NotchAgent**. Your settings, projects, and sessions carry over. It uses the CLIs you already have installed and signed in.
 
-![Hovering the Claude island: its sessions, remaining quota, token history, and recent activity](docs/images/en/hero.png)
+![The Claude island expands while Codex slides aside, then both return to their original positions](docs/images/hover-demo.gif)
 
-*Illustrative app UI with sample data.*
+*Hover over Claude to see its sessions and quota. The center stays in place while Codex slides aside. Demo rendered with sample data.*
+
+### Watch the demos at 120 fps
+
+The MP4s capture intermediate frames of the app's actual animations. The looping preview above is a 50 fps GIF.
+
+| Demo | What it shows |
+| --- | --- |
+| [Agent hover](docs/images/demos/agent-hover.mp4) | Open a Claude preview, move the neighboring island aside, then collapse it |
+| [Dashboard](docs/images/demos/dashboard.mp4) | Open the center preview for projects, quick prompts, and recent activity |
+| [Workspace](docs/images/demos/workspace.mp4) | Expand to project Home, open a terminal tab, and collapse |
+| [Completion](docs/images/demos/completion.mp4) | Move from a working indicator to a completion notice |
+| [Option hide](docs/images/demos/option-hide.mp4) | Merge the side islands, hide the center, and restore the menu bar islands |
+| [Settings](docs/images/demos/settings.mp4) | Open settings inside the expanded workspace |
 
 ## Get started
 

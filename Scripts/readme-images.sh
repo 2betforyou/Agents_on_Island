@@ -11,5 +11,5 @@ export DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Develope
 build_dir="${NOTCHAGENT_BUILD_DIR:-/private/tmp/NotchAgent-build-$UID}"
 xcodebuild -project "$project_dir/NotchAgent.xcodeproj" -scheme NotchAgent -configuration Debug \
   -derivedDataPath "$build_dir/DerivedData" -destination 'platform=macOS,arch=arm64' CODE_SIGN_IDENTITY=- \
-  -only-testing:NotchAgentTests/ReadmeImagesTests test | grep -E "passed|failed|error:" || true
+  -only-testing:NotchAgentTests/ReadmeImagesTests/testRenderReadmeImages test | grep -E "passed|failed|error:" || true
 ls -l "$project_dir/docs/images"/*

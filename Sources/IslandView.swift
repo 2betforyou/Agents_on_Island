@@ -30,10 +30,22 @@ enum Palette {
 /// One motion language for the whole app, tuned to feel like the Dynamic Island: the island
 /// itself expands without overshoot; smaller controls keep their existing response.
 enum Motion {
+    // Let the documentation renderer sample the same curves offline.
+    static let renderTimeScale: Double = {
+        #if DEBUG
+        if ProcessInfo.processInfo.environment["NOTCHAGENT_SLOW_DEMO"] == "1" { return 32 }
+        #endif
+        return 1
+    }()
+
+    static func timed(_ animation: Animation) -> Animation {
+        renderTimeScale == 1 ? animation : animation.speed(1 / renderTimeScale)
+    }
+
     /// Opening, closing and resizing the island.
-    static let island = Animation.spring(response: 0.46, dampingFraction: 0.88)
+    static let island = timed(.spring(response: 0.46, dampingFraction: 0.88))
     /// Selections, chips, tabs, counters, bars.
-    static let snappy = Animation.spring(response: 0.3, dampingFraction: 0.84)
+    static let snappy = timed(.spring(response: 0.3, dampingFraction: 0.84))
     /// Content fading in once the island has made room for it.
     static let content = Animation.easeOut(duration: 0.26).delay(0.07)
 }
@@ -136,8 +148,8 @@ struct IslandView: View {
                     } else if abs(height - model.previewContentHeight) > 0.5 { model.previewContentHeight = height }
                 }
                 .transition(.asymmetric(
-                    insertion: .opacity.animation(reduceMotion ? nil : .easeOut(duration: 0.16).delay(0.12)),
-                    removal: .opacity.animation(reduceMotion ? nil : .easeOut(duration: 0.08))))
+                    insertion: .opacity.animation(reduceMotion ? nil : Motion.timed(.easeOut(duration: 0.16).delay(0.12))),
+                    removal: .opacity.animation(reduceMotion ? nil : Motion.timed(.easeOut(duration: 0.08)))))
             }
         }
         .id(model.language)
@@ -168,7 +180,7 @@ struct IslandView: View {
         .task(id: model.phase) {
             if model.phase != .closed { surfaceVisible = true; return }
             if !reduceMotion {
-                do { try await Task.sleep(for: .milliseconds(460)) } catch { return }
+                do { try await Task.sleep(for: .seconds(0.46 * Motion.renderTimeScale)) } catch { return }
             }
             guard !Task.isCancelled, model.phase == .closed else { return }
             surfaceVisible = false

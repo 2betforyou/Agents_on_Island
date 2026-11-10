@@ -6,9 +6,22 @@
 
 Agents on Island(AoI)는 **NotchAgent**의 새 이름입니다. 설정·프로젝트·세션은 그대로 이어집니다. 이미 설치하고 로그인한 CLI를 그대로 사용합니다.
 
-![Claude 섬에 마우스를 올린 모습: 세션, 남은 한도, 토큰 기록, 최근 활동](docs/images/ko/hero.png)
+![Claude 섬이 펼쳐지면 Codex 섬이 옆으로 비켜나고, 접으면 원래 자리로 돌아오는 데모](docs/images/hover-demo.gif)
 
-*샘플 데이터를 사용한 앱 화면입니다.*
+*Claude 섬에 마우스를 올리면 세션과 남은 한도가 펼쳐집니다. 가운데 섬은 제자리에 있고 Codex 섬은 옆으로 비켜납니다. 샘플 데이터로 렌더링한 데모입니다.*
+
+### 동작별 120fps 데모
+
+MP4에는 앱 애니메이션의 중간 프레임을 촘촘히 담았습니다. 위의 반복 재생 미리보기는 50fps GIF입니다.
+
+| 데모 | 볼 수 있는 동작 |
+| --- | --- |
+| [에이전트 호버](docs/images/demos/agent-hover.mp4) | Claude 미리보기 펼치기, 옆 섬 밀어내기, 원래 자리로 돌아오기 |
+| [중앙 대시보드](docs/images/demos/dashboard.mp4) | 프로젝트, 빠른 입력, 최근 활동을 한 화면에서 보기 |
+| [작업 화면](docs/images/demos/workspace.mp4) | 프로젝트 홈에서 터미널 탭으로 전환하고 접기 |
+| [완료 알림](docs/images/demos/completion.mp4) | 작업 중 표시가 완료 알림으로 바뀌는 모습 |
+| [Option 숨김](docs/images/demos/option-hide.mp4) | 양옆 섬을 중앙으로 모아 숨기고 다시 표시하기 |
+| [설정](docs/images/demos/settings.mp4) | 펼쳐진 작업 화면 안에서 설정 열기 |
 
 ## 처음 시작하기
 
