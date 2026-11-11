@@ -229,6 +229,7 @@ struct SettingsView: View {
             .formStyle(.grouped)
             case .about:
             Form {
+            UpdateCheckSection(installedVersion: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—")
             Section(L("앱", "Application")) {
                 Button(role: .destructive) { NSApp.terminate(nil) } label: {
                     Label(L("앱 종료", "Quit App"), systemImage: "power")

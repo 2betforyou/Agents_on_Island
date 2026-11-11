@@ -10,19 +10,6 @@ Agents on Island (AoI) was previously called **NotchAgent**. Your settings, proj
 
 *Hover over Claude to see its sessions and quota. The center stays in place while Codex slides aside. Demo rendered with sample data.*
 
-### Watch the demos at 120 fps
-
-The MP4s capture intermediate frames of the app's actual animations. The looping preview above is a 50 fps GIF.
-
-| Demo | What it shows |
-| --- | --- |
-| [Agent hover](docs/images/demos/agent-hover.mp4) | Open a Claude preview, move the neighboring island aside, then collapse it |
-| [Dashboard](docs/images/demos/dashboard.mp4) | Open the center preview for projects, quick prompts, and recent activity |
-| [Workspace](docs/images/demos/workspace.mp4) | Open a Claude Code tab, type a sample prompt, and read the reply in the embedded terminal |
-| [Completion](docs/images/demos/completion.mp4) | Move from a working indicator to a completion notice |
-| [Option hide](docs/images/demos/option-hide.mp4) | Merge the side islands, hide the center, and restore the menu bar islands |
-| [Settings](docs/images/demos/settings.mp4) | Open settings inside the expanded workspace |
-
 ## Get started
 
 You need an **Apple silicon Mac with macOS 14 or later**. Install and sign in to whichever CLI you want to use: Codex (`codex`), Claude Code (`claude`), or Gemini CLI (`gemini`). You can also use the terminal on its own.
@@ -45,7 +32,7 @@ If an agent is unavailable, open **Settings → Agents** and check its executabl
 3. Open it. Projects, settings, and restorable sessions come back as before.
 4. If you used **Launch at login**, check that it's still on in **Settings → General**.
 
-There's no automatic updater yet. Watch the repository's releases to hear about new versions.
+Open **Settings → About → Check for Updates** to compare your version with the latest GitHub release. Open the release to download the update.
 
 ## The islands
 

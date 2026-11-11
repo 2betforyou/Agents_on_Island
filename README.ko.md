@@ -10,19 +10,6 @@ Agents on Island(AoI)는 **NotchAgent**의 새 이름입니다. 설정·프로�
 
 *Claude 섬에 마우스를 올리면 세션과 남은 한도가 펼쳐집니다. 가운데 섬은 제자리에 있고 Codex 섬은 옆으로 비켜납니다. 샘플 데이터로 렌더링한 데모입니다.*
 
-### 동작별 120fps 데모
-
-MP4에는 앱 애니메이션의 중간 프레임을 촘촘히 담았습니다. 위의 반복 재생 미리보기는 50fps GIF입니다.
-
-| 데모 | 볼 수 있는 동작 |
-| --- | --- |
-| [에이전트 호버](docs/images/demos/agent-hover.mp4) | Claude 미리보기 펼치기, 옆 섬 밀어내기, 원래 자리로 돌아오기 |
-| [중앙 대시보드](docs/images/demos/dashboard.mp4) | 프로젝트, 빠른 입력, 최근 활동을 한 화면에서 보기 |
-| [작업 화면](docs/images/demos/workspace.mp4) | Claude Code 탭에서 예시 질문을 입력하고 앱 안의 터미널에서 답변 읽기 |
-| [완료 알림](docs/images/demos/completion.mp4) | 작업 중 표시가 완료 알림으로 바뀌는 모습 |
-| [Option 숨김](docs/images/demos/option-hide.mp4) | 양옆 섬을 중앙으로 모아 숨기고 다시 표시하기 |
-| [설정](docs/images/demos/settings.mp4) | 펼쳐진 작업 화면 안에서 설정 열기 |
-
 ## 처음 시작하기
 
 **Apple Silicon Mac, macOS 14 이상**이 필요합니다. 사용할 CLI를 설치하고 로그인해 두세요: Codex(`codex`), Claude Code(`claude`), Gemini CLI(`gemini`). 터미널만 따로 써도 됩니다.
@@ -45,7 +32,7 @@ Dock 아이콘은 없습니다. 섬, 단축키, 메뉴바 아이콘으로 다시
 3. 실행하면 프로젝트·설정·복원 가능한 세션이 그대로 돌아옵니다.
 4. **로그인 시 실행**을 쓰고 있었다면 **설정 → 일반**에서 켜져 있는지 확인하세요.
 
-자동 업데이트는 아직 없습니다. 새 버전 소식은 저장소의 릴리스를 확인하세요.
+**설정 → 정보 → 업데이트 확인**에서 설치된 버전을 GitHub 최신 릴리즈와 비교할 수 있습니다. 새 버전이 있으면 릴리즈 페이지를 열어 다운로드하세요.
 
 ## 섬
 
