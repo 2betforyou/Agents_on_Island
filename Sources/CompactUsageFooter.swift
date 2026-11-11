@@ -37,11 +37,11 @@ struct CompactUsageFooter: View {
     }
     @ViewBuilder private func agents(now: Date) -> some View {
         if claude.enabled && (agent == nil || agent == .claude) {
-            CompactAgentUsage(agent: .claude, snapshot: claude.snapshot, now: now,
+            CompactAgentUsage(agent: .claude, snapshot: claude.snapshot, now: now, showsWeekly: stacked,
                               refresh: { claude.reload() })
         }
         if codex.enabled && (agent == nil || agent == .codex) {
-            CompactAgentUsage(agent: .codex, snapshot: codex.snapshot, now: now,
+            CompactAgentUsage(agent: .codex, snapshot: codex.snapshot, now: now, showsWeekly: stacked,
                               loading: codex.isLoading, error: codex.error, refresh: { codex.refresh() })
         }
     }
@@ -63,11 +63,13 @@ private struct CompactAgentUsage: View {
     let agent: AgentKind
     let snapshot: UsageSnapshot?
     let now: Date
+    let showsWeekly: Bool
     var loading = false
     var error: String? = nil
     let refresh: () -> Void
     private var windows: [UsageWindow] {
-        Array((snapshot?.windows ?? []).sorted { ($0.durationMinutes ?? 0) < ($1.durationMinutes ?? 0) }.prefix(2))
+        guard showsWeekly else { return [snapshot?.fiveHourWindow].compactMap { $0 } }
+        return Array((snapshot?.windows ?? []).sorted { ($0.durationMinutes ?? 0) < ($1.durationMinutes ?? 0) }.prefix(2))
     }
     var body: some View {
         HStack(spacing: 7) {

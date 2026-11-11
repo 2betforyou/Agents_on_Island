@@ -60,14 +60,15 @@ final class ClosedNotchTests: XCTestCase {
             UsageWindow(id: index == 0 ? "primary" : "secondary", usedPercent: value, durationMinutes: index == 0 ? 300 : 10080, resetsAt: nil)
         }, fetchedAt: Date())
     }
-    func testIdleUsageRingIsWeeklyAndNumberIsFiveHour() throws {
+    func testIdleUsageRequiresFiveHourLimit() throws {
         let usage = try XCTUnwrap(IdleUsage(agent: .claude, snapshot: snapshot([24, 85])))
         XCTAssertEqual(usage.session.remaining, 76, "the number: 5-hour quota left")
-        XCTAssertEqual(usage.weekly.remaining, 15, "the ring: weekly quota left")
         let reversed = UsageSnapshot(windows: snapshot([24, 85]).windows.reversed(), fetchedAt: Date())
         XCTAssertEqual(IdleUsage(agent: .claude, snapshot: reversed), usage, "picked by length, not order")
         let single = try XCTUnwrap(IdleUsage(agent: .codex, snapshot: snapshot([40])))
-        XCTAssertEqual(single.session, single.weekly, "one limit: ring and number both show it")
+        XCTAssertEqual(single.session.remaining, 60)
+        let weeklyOnly = UsageSnapshot(windows: [snapshot([24, 85]).windows[1]], fetchedAt: Date())
+        XCTAssertNil(IdleUsage(agent: .codex, snapshot: weeklyOnly))
         XCTAssertNil(IdleUsage(agent: .codex, snapshot: nil))
         XCTAssertNil(IdleUsage(agent: .codex, snapshot: snapshot([])))
     }

@@ -26,7 +26,12 @@ for name in "${scenes[@]}"; do
     -vf 'scale=1280:-2:flags=lanczos' -c:v libx264 -crf 19 -pix_fmt yuv420p -movflags +faststart \
     "$project_dir/docs/images/demos/$name.mp4"
 done
-if [[ "$test_name" == "testRenderLiveWorkspaceDemo" ]]; then exit 0; fi
+if [[ "$test_name" == "testRenderLiveWorkspaceDemo" ]]; then
+  ffmpeg -hide_banner -loglevel error -y -i "$project_dir/docs/images/demos/workspace.mp4" \
+    -filter_complex 'fps=50,scale=960:-1:flags=lanczos,split[a][b];[a]palettegen=stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle' \
+    -loop 0 "$project_dir/docs/images/workspace-demo.gif"
+  exit 0
+fi
 ffmpeg -hide_banner -loglevel error -y -framerate 120 -i "$scratch/agent-hover/%03d.png" \
   -filter_complex 'fps=50,scale=960:-1:flags=lanczos,split[a][b];[a]palettegen=stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle' \
   -loop 0 "$project_dir/docs/images/hover-demo.gif"

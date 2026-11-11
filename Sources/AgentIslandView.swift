@@ -73,11 +73,9 @@ private struct AgentIslandPill: View {
                             }
                         }
                     } else if let quota {
-                        UsageBadge(usage: quota, showsNumber: !usesCenterSurface)
-                        if usesCenterSurface {
-                            Spacer(minLength: model.centerIslandWidth)
-                            UsageBadge.percent(quota)
-                        }
+                        AgentLogo(kind: kind, size: 16)
+                        if usesCenterSurface { Spacer(minLength: model.centerIslandWidth) }
+                        IdleQuotaPercentage(usage: quota)
                     } else {
                         AgentLogo(kind: kind, size: 16)
                             .overlay(alignment: .topTrailing) {

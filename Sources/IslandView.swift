@@ -911,39 +911,19 @@ struct NotchStatusView: View {
     }
 }
 
-/// Idle island: weekly quota left in the ring, 5-hour quota left as a number.
-/// Low remaining quota turns red, matching the preview and workspace footer.
-struct UsageBadge: View {
+/// The collapsed island's 5-hour quota.
+struct IdleQuotaPercentage: View {
     let usage: IdleUsage
-    let showsNumber: Bool
-    private static func color(_ window: UsageWindow, normal: Color) -> Color {
-        window.remaining <= NotchStatus.lowQuotaThreshold ? Palette.low : normal
-    }
-    private static func remainingLabel(_ window: UsageWindow) -> String {
-        window.title + L(" \(Int(window.remaining))% 남음", " \(Int(window.remaining))% left")
-    }
-    static func percent(_ usage: IdleUsage) -> some View {
-        Text("\(Int(usage.session.remaining))%").font(.caption.monospacedDigit().weight(.semibold))
-            .foregroundStyle(color(usage.session, normal: .white))
-            .contentTransition(.numericText(value: usage.session.remaining))
-            .help(usage.agent.name + " · " + remainingLabel(usage.session) + " · " + usage.session.resetLabel())
-    }
+
     var body: some View {
-        HStack(spacing: 5) {
-            ZStack {
-                Circle().stroke(Color.white.opacity(0.12), lineWidth: 2)
-                Circle().trim(from: 0, to: usage.weekly.remaining / 100)
-                    .stroke(Self.color(usage.weekly, normal: Color.white.opacity(0.9)), style: StrokeStyle(lineWidth: 2, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
-                    .animation(Motion.snappy, value: usage.weekly.remaining)
-                SessionIcon(kind: usage.agent, size: 11)
-            }
-            .frame(width: 21, height: 21)
-            .help(usage.agent.name + " · " + Self.remainingLabel(usage.weekly) + " · " + usage.weekly.resetLabel())
-            if showsNumber { Self.percent(usage) }
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(usage.agent.name + ", " + Self.remainingLabel(usage.session) + ", " + Self.remainingLabel(usage.weekly))
+        let remaining = usage.session.remaining
+        let label = L("5시간 한도 \(Int(remaining))% 남음", "5-hour limit: \(Int(remaining))% left")
+        Text("\(Int(remaining))%")
+            .font(.caption.monospacedDigit().weight(.semibold))
+            .foregroundStyle(remaining <= NotchStatus.lowQuotaThreshold ? Palette.low : .white)
+            .contentTransition(.numericText(value: remaining))
+            .help(label + " · " + usage.session.resetLabel())
+            .accessibilityLabel(label)
     }
 }
 

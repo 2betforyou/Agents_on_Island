@@ -64,11 +64,9 @@ Islands appear only when they have something to show. With nothing running and u
 
 ### What an island shows
 
-![Agent islands around the center island: idle quota, working, elapsed time, working count, and a completion notice](docs/images/en/notch-states.png)
-
 - **Working**: the agent's icon and `•••`, then elapsed time after a minute. Optionally, the number of sessions working.
 - **Notice**: when a session finishes or needs input, its island grows briefly to show the event and project. It disappears after about six seconds; find it again in **Recent Activity**.
-- **Idle**: remaining quota. The **number is the 5-hour limit left** and the **ring is the weekly limit left**; each turns red at 20% or less.
+- **Idle** shows the remaining 5-hour quota. The number turns red at 20% or less. Hover to see the weekly quota.
 
 Choose these in **Settings → Notch → Collapsed notch**: show usage while idle (on), show ongoing work (on), show working session count (off). Choose **Notch**, **Notification Center**, and **Sound** separately for each event in **Settings → Alerts → Event delivery**. Turning displays off doesn't stop your sessions.
 
@@ -87,9 +85,9 @@ The islands are drawn by this app over the menu bar. They aren't Apple's Dynamic
 
 ## Workspace
 
-![Project workspace with terminal and session tabs](docs/images/en/workspace.png)
+[![Claude Code session showing a sample prompt and its reply in the workspace terminal](docs/images/workspace-demo.gif)](docs/images/demos/workspace.mp4)
 
-*Illustrative app UI with sample data.*
+*Click the preview to watch the 120 fps recording.*
 
 ### Projects and sessions
 

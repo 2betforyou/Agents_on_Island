@@ -330,8 +330,12 @@ final class AppModel {
         return banner?.kind == kind ? max(centerIslandWidth, width) : centerIslandWidth + width + 8
     }
     var closedIslandKinds: [AgentKind] {
+        let usageKinds: [AgentKind] = [
+            claudeUsage.enabled && claudeUsage.snapshot?.windows.isEmpty == false ? .claude : nil,
+            usage.enabled && usage.snapshot?.windows.isEmpty == false ? .codex : nil
+        ].compactMap { $0 }
         let kinds = [AgentKind.claude, .codex, .gemini, .shell].filter { kind in
-            (quietNotchShowsUsage && idleUsages.contains { $0.agent == kind })
+            (quietNotchShowsUsage && usageKinds.contains(kind))
                 || (notchShowsWorking && workingNotchSessions.contains { $0.kind == kind })
                 || banner?.kind == kind
         }
@@ -353,7 +357,7 @@ final class AppModel {
             return CGSize(width: 14 + 6 + max(18, textWidth(elapsed)) + count + 16, height: notchHeight)
         }
         if quietNotchShowsUsage, let quota = idleUsages.first(where: { $0.agent == kind }) {
-            return CGSize(width: 21 + 5 + textWidth("\(Int(quota.session.remaining))%") + 16, height: notchHeight)
+            return CGSize(width: 16 + 6 + textWidth("\(Int(quota.session.remaining))%") + 16, height: notchHeight)
         }
         return CGSize(width: 32, height: notchHeight)
     }

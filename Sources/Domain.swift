@@ -178,17 +178,11 @@ enum NotchBadge: Equatable {
 /// Limits are told apart by length; with a single limit, both show it.
 struct IdleUsage: Equatable {
     let agent: AgentKind
-    /// The shortest limit (5-hour), shown as the percentage.
     let session: UsageWindow
-    /// The longest limit (weekly), shown as the ring.
-    let weekly: UsageWindow
     init?(agent: AgentKind, snapshot: UsageSnapshot?) {
-        // Unknown lengths sort by id, so "primary" counts as the shorter limit.
-        let windows = (snapshot?.windows ?? []).sorted {
-            ($0.durationMinutes ?? ($0.id == "primary" ? 0 : .max), $0.id) < ($1.durationMinutes ?? ($1.id == "primary" ? 0 : .max), $1.id)
-        }
-        guard let session = windows.first, let weekly = windows.last else { return nil }
-        self.agent = agent; self.session = session; self.weekly = weekly
+        guard let session = snapshot?.fiveHourWindow else { return nil }
+        self.agent = agent
+        self.session = session
     }
 }
 
@@ -468,6 +462,7 @@ struct UsageSnapshot: Equatable {
     var plan: String?
     var lifetimeTokens: Int64?
     var fetchedAt: Date
+    var fiveHourWindow: UsageWindow? { windows.first { $0.durationMinutes == 300 } }
     static func parse(limits: [String: Any], activity: [String: Any]?, plan: String?, now: Date = Date()) -> UsageSnapshot? {
         let buckets = limits["rateLimitsByLimitId"] as? [String: Any]
         let bucket: [String: Any]?
