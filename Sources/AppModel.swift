@@ -1,5 +1,6 @@
 import AppKit
 import Observation
+import SwiftUI
 
 @MainActor @Observable
 final class AppModel {
@@ -308,7 +309,26 @@ final class AppModel {
     func centerIslandFrame(in rect: CGRect) -> CGRect {
         CGRect(x: rect.midX - centerIslandWidth / 2, y: rect.maxY - notchHeight, width: centerIslandWidth, height: notchHeight)
     }
+    func isOverCenterIsland(_ point: CGPoint, in rect: CGRect) -> Bool {
+        let center = centerIslandFrame(in: rect)
+        return hasPhysicalNotch ? center.contains(point) : Capsule().path(in: center).contains(point)
+    }
+    func collapsedHoverTarget(at point: CGPoint, in rect: CGRect) -> (inside: Bool, agent: AgentKind?) {
+        if isOverCenterIsland(point, in: rect) { return (true, nil) }
+        let agent = agentIslandFrames(in: rect).first {
+            IslandShape(radius: min(18, $0.frame.height / 2)).path(in: $0.frame).contains(point)
+        }?.kind
+        return (agent != nil, agent)
+    }
     var centerIslandWidth: CGFloat { hasPhysicalNotch && physicalNotchWidth > 0 ? physicalNotchWidth : IslandMetrics.mockCameraWidth }
+    var centeredAgentKind: AgentKind? {
+        let kinds = closedIslandKinds
+        return !hasPhysicalNotch && kinds.count == 1 ? kinds.first : nil
+    }
+    private func centeredIslandWidth(_ kind: AgentKind) -> CGFloat {
+        let width = agentIslandSize(kind).width
+        return banner?.kind == kind ? max(centerIslandWidth, width) : centerIslandWidth + width + 8
+    }
     var closedIslandKinds: [AgentKind] {
         let kinds = [AgentKind.claude, .codex, .gemini, .shell].filter { kind in
             (quietNotchShowsUsage && idleUsages.contains { $0.agent == kind })
@@ -344,6 +364,12 @@ final class AppModel {
         }.max() ?? 0
     }
     func agentIslandFrames(in rect: CGRect) -> [(kind: AgentKind, frame: CGRect)] {
+        if let kind = centeredAgentKind {
+            let size = agentIslandSize(kind)
+            let width = centeredIslandWidth(kind)
+            return [(kind, CGRect(x: rect.midX - width / 2, y: rect.maxY - size.height,
+                                  width: width, height: size.height))]
+        }
         var result: [(AgentKind, CGRect)] = []
         for left in [true, false] {
             let kinds = islandKinds(onLeft: left)
@@ -361,7 +387,7 @@ final class AppModel {
     /// The camera (real or mock) never participates in collision displacement.
     func presentedAgentIslandFrames(in rect: CGRect) -> [(kind: AgentKind, frame: CGRect)] {
         let frames = agentIslandFrames(in: rect)
-        guard phase == .preview else { return frames }
+        guard phase == .preview, centeredAgentKind == nil else { return frames }
         let center = rect.midX + islandOffsetX
         var leftEdge = center - islandWidth / 2 - 8
         var rightEdge = center + islandWidth / 2 + 8
@@ -400,7 +426,8 @@ final class AppModel {
         return wing == 0 && lastError != nil ? 32 : wing
     }
     var closedWidth: CGFloat {
-        notchGapWidth + islandSideWidth * 2
+        if let kind = centeredAgentKind { return centeredIslandWidth(kind) }
+        return notchGapWidth + islandSideWidth * 2
     }
     var closedHeight: CGFloat { closedIslandKinds.map { agentIslandSize($0).height }.max() ?? notchHeight }
     var islandWidth: CGFloat {

@@ -18,7 +18,7 @@ The MP4s capture intermediate frames of the app's actual animations. The looping
 | --- | --- |
 | [Agent hover](docs/images/demos/agent-hover.mp4) | Open a Claude preview, move the neighboring island aside, then collapse it |
 | [Dashboard](docs/images/demos/dashboard.mp4) | Open the center preview for projects, quick prompts, and recent activity |
-| [Workspace](docs/images/demos/workspace.mp4) | Expand to project Home, open a terminal tab, and collapse |
+| [Workspace](docs/images/demos/workspace.mp4) | Open a Claude Code tab, type a sample prompt, and read the reply in the embedded terminal |
 | [Completion](docs/images/demos/completion.mp4) | Move from a working indicator to a completion notice |
 | [Option hide](docs/images/demos/option-hide.mp4) | Merge the side islands, hide the center, and restore the menu bar islands |
 | [Settings](docs/images/demos/settings.mp4) | Open settings inside the expanded workspace |

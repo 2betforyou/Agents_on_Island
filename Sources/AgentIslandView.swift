@@ -7,31 +7,22 @@ struct AgentIslandsView: View {
     var body: some View {
         let bounds = CGRect(x: 0, y: 0, width: model.closedWidth, height: model.closedHeight)
         let frames = model.presentedAgentIslandFrames(in: bounds)
+        let center = model.centerIslandFrame(in: bounds)
         ZStack(alignment: .topLeading) {
-            // The center island opens the workspace, like the shortcut (agent islands open their own
-            // sessions). On a notched display the camera notch itself is the center island.
-            let center = model.centerIslandFrame(in: bounds)
-            if center.width > 0 {
-                Button { model.openPriorityOrTerminal() } label: {
-                    Group {
-                        // The real notch needs nothing drawn: only an invisible hit area over it.
-                        if model.hasPhysicalNotch { Color.clear } else { Capsule().fill(.black) }
-                    }
-                    .frame(width: center.width, height: model.notchHeight)
-                    .contentShape(Rectangle())
-                }
-                    .buttonStyle(.plain)
+            if !model.hasPhysicalNotch {
+                let width = model.centeredAgentKind != nil && model.phase == .closed ? model.closedWidth : center.width
+                Capsule().fill(.black)
+                    .frame(width: width, height: model.notchHeight)
                     .position(x: bounds.midX, y: model.notchHeight / 2)
-                    .help(L("작업 화면 열기", "Open workspace"))
-                    .accessibilityLabel(L("작업 화면 열기", "Open workspace"))
-                    .allowsHitTesting(!model.optionConcealed)
+                    .allowsHitTesting(false)
+                    .motion(Motion.island, value: width, reduce: reduceMotion)
                     .opacity(model.optionConcealed ? 0 : 1)
                     .animation(reduceMotion ? nil : Motion.timed(.easeInOut(duration: 0.14).delay(model.optionConcealed ? 0.36 : 0)), value: model.optionConcealed)
             }
             ForEach(model.closedIslandKinds) { kind in
                 let frame = frames.first { $0.kind == kind }!.frame
-                let expanded = model.phase == .preview && model.previewAgent == kind
-                AgentIslandPill(model: model, kind: kind)
+                let expanded = model.phase == .preview && (model.previewAgent == kind || model.centeredAgentKind == kind)
+                AgentIslandPill(model: model, kind: kind, size: frame.size)
                     .position(x: model.optionConcealed ? bounds.midX : frame.midX, y: bounds.height - frame.midY)
                     .motion(Motion.island, value: frame, reduce: reduceMotion)
                     .animation(reduceMotion ? nil : Motion.timed(.spring(response: 0.34, dampingFraction: 0.9).delay(model.optionConcealed ? 0 : 0.12)), value: model.optionConcealed)
@@ -42,29 +33,51 @@ struct AgentIslandsView: View {
                     .animation(reduceMotion ? nil : Motion.timed(.easeOut(duration: 0.1)), value: expanded)
                     .allowsHitTesting(!expanded)
             }
-        }.frame(width: bounds.width, height: bounds.height)
+            // The original center remains a separate control over the shared surface.
+            Button { model.openPriorityOrTerminal() } label: {
+                Color.clear
+                    .frame(width: center.width, height: center.height)
+                    .contentShape(IslandShape(radius: model.hasPhysicalNotch ? 0 : center.height / 2))
+            }
+            .buttonStyle(.plain)
+            .position(x: bounds.midX, y: model.notchHeight / 2)
+            .help(L("작업 화면 열기", "Open workspace"))
+            .accessibilityLabel(L("작업 화면 열기", "Open workspace"))
+            .allowsHitTesting(!model.optionConcealed)
+            .accessibilityHidden(model.optionConcealed)
+        }
+        .frame(width: bounds.width, height: bounds.height)
+        .motion(Motion.island, value: model.centeredAgentKind, reduce: reduceMotion)
     }
 }
 
 private struct AgentIslandPill: View {
     let model: AppModel
     let kind: AgentKind
+    let size: CGSize
     private var working: [TerminalSession] { model.notchShowsWorking ? model.workingNotchSessions.filter { $0.kind == kind } : [] }
     private var quota: IdleUsage? { model.quietNotchShowsUsage ? model.idleUsages.first { $0.agent == kind } : nil }
     private var notice: NotchBanner? { model.banner?.kind == kind ? model.banner : nil }
+    private var usesCenterSurface: Bool { model.centeredAgentKind == kind && notice == nil }
     var body: some View {
-        let size = model.agentIslandSize(kind)
         Button { model.openAgentIsland(kind) } label: {
             VStack(alignment: .leading, spacing: 5) {
                 HStack(spacing: 6) {
                     if let since = working.compactMap(\.workingSince).min() {
                         AgentLogo(kind: kind, size: 14)
-                        NotchStatusView(status: .working(since: since))
-                        if model.notchShowsWorkCount, working.count > 1 {
-                            Text("\(working.count)").font(.caption2.monospacedDigit())
+                        if usesCenterSurface { Spacer(minLength: model.centerIslandWidth) }
+                        HStack(spacing: 6) {
+                            NotchStatusView(status: .working(since: since))
+                            if model.notchShowsWorkCount, working.count > 1 {
+                                Text("\(working.count)").font(.caption2.monospacedDigit())
+                            }
                         }
                     } else if let quota {
-                        UsageBadge(usage: quota, showsNumber: true)
+                        UsageBadge(usage: quota, showsNumber: !usesCenterSurface)
+                        if usesCenterSurface {
+                            Spacer(minLength: model.centerIslandWidth)
+                            UsageBadge.percent(quota)
+                        }
                     } else {
                         AgentLogo(kind: kind, size: 16)
                             .overlay(alignment: .topTrailing) {
@@ -80,9 +93,15 @@ private struct AgentIslandPill: View {
             .padding(.horizontal, 8)
             .frame(width: size.width, height: size.height)
             .background {
-                IslandShape(radius: notice == nil ? size.height / 2 : 18).fill(.black)
+                if !usesCenterSurface {
+                    IslandShape(radius: notice == nil ? size.height / 2 : 18).fill(.black)
+                }
             }
-            .overlay { RoundedRectangle(cornerRadius: notice == nil ? size.height / 2 : 18, style: .continuous).stroke(Palette.line, lineWidth: 0.5) }
+            .overlay {
+                if !usesCenterSurface {
+                    RoundedRectangle(cornerRadius: notice == nil ? size.height / 2 : 18, style: .continuous).stroke(Palette.line, lineWidth: 0.5)
+                }
+            }
             .contentShape(.rect(cornerRadius: notice == nil ? size.height / 2 : 18))
         }
         .buttonStyle(.plain)

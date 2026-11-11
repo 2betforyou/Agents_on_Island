@@ -20,6 +20,24 @@ struct IslandGeometryTests {
         #expect(codex.frame.width == model.agentIslandSize(.codex).width)
         #expect(codex.frame.width < 76)
         #expect(!codex.frame.contains(CGPoint(x: model.closedWidth / 2, y: model.closedHeight / 2)))
+        model.hasPhysicalNotch = false
+        let external = CGRect(x: 0, y: 0, width: model.closedWidth, height: model.closedHeight)
+        let centered = try #require(model.agentIslandFrames(in: external).first)
+        #expect(centered.kind == .codex)
+        #expect(centered.frame.midX == external.midX)
+        #expect(centered.frame.width == external.width)
+        let core = model.centerIslandFrame(in: external)
+        let dashboard = model.collapsedHoverTarget(at: CGPoint(x: core.midX, y: core.midY), in: external)
+        #expect(dashboard.inside)
+        #expect(dashboard.agent == nil)
+        for x in [(core.minX + external.minX) / 2, (core.maxX + external.maxX) / 2] {
+            let edge = model.collapsedHoverTarget(at: CGPoint(x: x, y: core.midY), in: external)
+            #expect(edge.inside)
+            #expect(edge.agent == .codex)
+        }
+        model.previewAgent = .codex
+        #expect(model.expansionOriginX == 0)
+        model.hasPhysicalNotch = true
         let directory = URL(fileURLWithPath: "/tmp")
         let claude = TerminalSession(kind: .claude, directory: directory, executable: "/bin/echo", fontSize: 13)
         let other = TerminalSession(kind: .codex, directory: directory, executable: "/bin/echo", fontSize: 13)
@@ -141,7 +159,7 @@ struct IslandGeometryTests {
         #expect(!path.contains(CGPoint(x: rect.minX + 1, y: rect.maxY - 1)))
         #expect(!path.contains(CGPoint(x: rect.midX, y: rect.maxY + 4)))
     }
-    @Test("Only the transparent camera gap depends on camera width")
+    @Test("An external display fits a single centered island")
     @MainActor func cameraIndependentSize() {
         let usage = UsageService()
         usage.enabled = false
@@ -151,10 +169,9 @@ struct IslandGeometryTests {
         let model = AppModel(defaults: defaults, usage: usage)
         model.claudeUsage.enabled = false
         model.physicalNotchWidth = 185; model.compactWidth = 285
-        let notched = model.closedWidth
         let pill = model.agentIslandSize(.shell)
         model.hasPhysicalNotch = false; model.physicalNotchWidth = 0; model.compactWidth = 210
-        #expect(notched - model.closedWidth == 107)
+        #expect(model.closedWidth >= IslandMetrics.mockCameraWidth + pill.width)
         #expect(model.mockCameraFrame(in: CGRect(x: 0, y: 0, width: model.closedWidth, height: model.closedHeight)).width / model.notchHeight == 2.5)
         #expect(model.agentIslandSize(.shell) == pill)
         #expect(model.closedHeight == 28)

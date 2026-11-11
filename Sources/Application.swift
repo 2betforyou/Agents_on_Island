@@ -231,23 +231,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let rect = IslandGeometry.surfaceFrame(screen: screen.frame, visible: screen.visibleFrame, safeAreaTop: screen.safeAreaInsets.top,
                                               size: CGSize(width: model.islandWidth, height: model.islandHeight)).offsetBy(dx: model.islandOffsetX, dy: 0)
         let inside: Bool
+        let pointer = NSEvent.mouseLocation
         if model.phase == .closed {
-            let hovered = model.agentIslandFrames(in: rect).first {
-                IslandShape(radius: min(18, $0.frame.height / 2)).path(in: $0.frame).contains(NSEvent.mouseLocation)
-            }
-            let center = model.centerIslandFrame(in: rect)
-            let overCamera = (model.hasPhysicalNotch ? Path(center) : Capsule().path(in: center)).contains(NSEvent.mouseLocation)
-            inside = hovered != nil || overCamera
-            if inside, model.previewAgent != hovered?.kind { model.previewAgent = hovered?.kind }
+            let target = model.collapsedHoverTarget(at: pointer, in: rect)
+            inside = target.inside
+            if inside, model.previewAgent != target.agent { model.previewAgent = target.agent }
         } else {
             let closedRect = IslandGeometry.surfaceFrame(screen: screen.frame, visible: screen.visibleFrame, safeAreaTop: screen.safeAreaInsets.top,
                                                         size: CGSize(width: model.closedWidth, height: model.closedHeight))
-            let neighbor = model.phase == .preview ? model.presentedAgentIslandFrames(in: closedRect).first {
-                $0.kind != model.previewAgent && IslandShape(radius: $0.frame.height / 2).path(in: $0.frame).contains(NSEvent.mouseLocation)
+            let overCenter = model.phase == .preview && model.isOverCenterIsland(pointer, in: closedRect)
+            let neighbor = model.phase == .preview && !overCenter ? model.presentedAgentIslandFrames(in: closedRect).first {
+                $0.kind != model.previewAgent && $0.kind != model.centeredAgentKind
+                    && IslandShape(radius: $0.frame.height / 2).path(in: $0.frame).contains(pointer)
             } : nil
-            inside = neighbor != nil || IslandShape(radius: model.islandCornerRadius).path(in: rect).contains(NSEvent.mouseLocation)
-            if let neighbor {
-                withAnimation(NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? nil : Motion.island) { model.previewAgent = neighbor.kind }
+            inside = overCenter || neighbor != nil || IslandShape(radius: model.islandCornerRadius).path(in: rect).contains(pointer)
+            if !model.quickPromptActive, overCenter || neighbor != nil, model.previewAgent != neighbor?.kind {
+                withAnimation(NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? nil : Motion.island) { model.previewAgent = neighbor?.kind }
             }
         }
         let near = rect.insetBy(dx: -PointerPolling.nearMargin, dy: -PointerPolling.nearMargin).contains(NSEvent.mouseLocation)

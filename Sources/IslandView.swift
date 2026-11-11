@@ -88,6 +88,7 @@ struct IslandView: View {
     }
     private var surfaceSize: CGSize {
         if model.phase == .closed {
+            if model.centeredAgentKind != nil { return CGSize(width: model.closedWidth, height: model.closedHeight) }
             // Collapsed, the surface waits where it will grow from: the hovered island, or the
             // center island (the notch itself on a notched display).
             return CGSize(width: model.previewAgent.map { model.agentIslandSize($0).width } ?? model.centerIslandWidth, height: model.notchHeight)

@@ -155,16 +155,45 @@ final class ReadmeImagesTests: XCTestCase {
 
     /// Captures the production SwiftUI views with fixture data in a test window.
     func testRenderDemos() throws {
-        for name in ["agent-hover", "dashboard", "workspace", "completion", "option-hide", "settings"] {
+        for name in ["agent-hover", "dashboard", "completion", "option-hide", "settings"] {
             defaults.removePersistentDomain(forName: suite)
             try autoreleasepool { try renderDemo(name) }
         }
     }
 
-    private func renderDemo(_ name: String) throws {
+    func testRenderLiveWorkspaceDemo() throws {
+        guard let executable = ProcessInfo.processInfo.environment["NOTCHAGENT_DEMO_CLAUDE"] else {
+            throw XCTSkip("Use Scripts/readme-demo.sh --live-workspace to record a Claude response.")
+        }
+        try autoreleasepool { try renderDemo("workspace", liveClaude: executable) }
+    }
+
+    private func renderDemo(_ name: String, liveClaude: String? = nil) throws {
         let model = makeModel()
-        let tab = try session(.claude, folder: folders[0], title: "Login form validation",
+        let tab: TerminalSession
+        let result = scratch.appendingPathComponent("claude-demo-status")
+        if let liveClaude {
+            let script = scratch.appendingPathComponent("claude-demo.zsh")
+            let body = """
+            printf 'Claude Code · my-app\\n\\n> '
+            IFS= read -r prompt || exit 1
+            printf '\\nClaude is responding…\\n\\n'
+            \(ShellSafety.quote(liveClaude)) --print --no-session-persistence --tools '' \\
+              --setting-sources '' --strict-mcp-config --mcp-config '{"mcpServers":{}}' \\
+              -- "$prompt" 2>/dev/null
+            demo_exit=$?
+            printf '%s' "$demo_exit" > \(ShellSafety.quote(result.path))
+            sleep 120
+            """
+            try body.write(to: script, atomically: true, encoding: .utf8)
+            tab = TerminalSession(kind: .claude, directory: URL(fileURLWithPath: folders[0]),
+                                  executable: "/bin/zsh", fontSize: 15,
+                                  arguments: ["-f", script.path], customTitle: "Email validation copy")
+            sessions.append(tab)
+        } else {
+            tab = try session(.claude, folder: folders[0], title: "Login form validation",
                               printing: "Checking LoginForm…\\r\\n12 tests passed.\\r\\n")
+        }
         model.sessions = [tab]
         model.recordActivity(.finished, for: tab, now: Date().addingTimeInterval(-120))
         model.previewAgent = name == "agent-hover" ? .claude : nil
@@ -236,7 +265,28 @@ final class ReadmeImagesTests: XCTestCase {
         if name == "workspace" {
             try motion { model.select(tab) }
             RunLoop.main.run(until: Date().addingTimeInterval(0.35))
-            try hold(1.4)
+            if liveClaude != nil {
+                try hold(0.5)
+                let prompt = "Suggest an accessible error message for an invalid email address. Give one short example."
+                for word in prompt.split(separator: " ") {
+                    tab.terminal.send(txt: String(word) + " ")
+                    RunLoop.main.run(until: Date().addingTimeInterval(0.08))
+                    try hold(0.1)
+                }
+                try hold(0.45)
+                tab.terminal.send(txt: "\r")
+                RunLoop.main.run(until: Date().addingTimeInterval(0.2))
+                try hold(0.65)
+                let deadline = Date().addingTimeInterval(60)
+                while !FileManager.default.fileExists(atPath: result.path), Date() < deadline {
+                    RunLoop.main.run(until: Date().addingTimeInterval(0.1))
+                }
+                XCTAssertEqual(try String(contentsOf: result, encoding: .utf8), "0", "Claude did not complete the sample prompt")
+                RunLoop.main.run(until: Date().addingTimeInterval(0.3))
+                try hold(3.5)
+            } else {
+                try hold(1.4)
+            }
         }
         try motion {
             model.banner = nil
